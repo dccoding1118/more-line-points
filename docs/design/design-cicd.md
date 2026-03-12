@@ -57,24 +57,30 @@
 
 ### 2.3 環境變數與 Secrets 策略
 
-本專案的 `config.yaml` 使用 `${ENV_VAR}` 語法引用環境變數。在 CI 環境中，這些變數透過 **GitHub Secrets** 注入。
+本專案的 `config.yaml` 使用 `${ENV_VAR}` 語法引用環境變數（如 `${DISCORD_BOT_TOKEN}`）。
+`config.Load()` 會對整份 YAML 做 `os.ExpandEnv`，未設定的環境變數會展開為空字串，但 `Validate()` 僅驗證 `database`、`api`、`parser` 的必填欄位——**Discord / Email 欄位為空不會導致載入失敗**。
+
+因此：
+- **`ci.yml`**：不需要任何 Secrets
+- **`sync.yml`**：不需要任何 Secrets（sync 只使用 `api.*`、`database.path`、`parser.rules_path`，皆為 `config.yaml` 中的硬編碼值）
+- **`notify.yml`**：需要全部 6 個 Secrets（Discord + Gmail）
 
 #### GitHub Secrets 清單
 
-| Secret 名稱                 | 用途                              | 使用的 Workflow          |
-| --------------------------- | --------------------------------- | ------------------------ |
-| `DISCORD_BOT_TOKEN`         | Discord Bot Token                 | `sync.yml`, `notify.yml` |
-| `DISCORD_GUILD_ID`          | Discord 伺服器 ID                 | `sync.yml`, `notify.yml` |
-| `DISCORD_NOTIFY_CHANNEL_ID` | 推播每日任務清單的 Channel ID     | `notify.yml`             |
-| `DISCORD_ADMIN_CHANNEL_ID`  | 管理/維運 Channel ID              | `notify.yml`             |
-| `GMAIL_CREDENTIALS_JSON`    | Gmail API `credentials.json` 內容 | `notify.yml`             |
-| `GMAIL_TOKEN_JSON`          | Gmail API `token.json` 內容       | `notify.yml`             |
+| Secret 名稱                 | 用途                              | 使用的 Workflow |
+| --------------------------- | --------------------------------- | --------------- |
+| `DISCORD_BOT_TOKEN`         | Discord Bot Token                 | `notify.yml`    |
+| `DISCORD_GUILD_ID`          | Discord 伺服器 ID                 | `notify.yml`    |
+| `DISCORD_NOTIFY_CHANNEL_ID` | 推播每日任務清單的 Channel ID     | `notify.yml`    |
+| `DISCORD_ADMIN_CHANNEL_ID`  | 管理/維運 Channel ID              | `notify.yml`    |
+| `GMAIL_CREDENTIALS_JSON`    | Gmail API `credentials.json` 內容 | `notify.yml`    |
+| `GMAIL_TOKEN_JSON`          | Gmail API `token.json` 內容       | `notify.yml`    |
 
 > **注意**：Gmail 的 `credentials.json` 與 `token.json` 為機密檔案，在 CI 環境中以 **Secret 內容** 形式儲存（非路徑），Workflow 中透過 `echo "$SECRET" > {file}.json` 還原為檔案。
 
-#### .env 產生策略
+#### .env 產生策略（僅 `notify.yml`）
 
-Sync 與 Notify Workflow 在 runtime 前，透過 Shell Script 將 GitHub Secrets 寫入 `.env` 檔案，使 `godotenv.Overload()` 能正確載入：
+`notify.yml` 在 runtime 前，透過 Shell Script 將 GitHub Secrets 寫入 `.env` 檔案，使 `godotenv.Overload()` 能正確載入：
 
 ```bash
 cat <<EOF > .env
@@ -85,7 +91,12 @@ DISCORD_ADMIN_CHANNEL_ID=${{ secrets.DISCORD_ADMIN_CHANNEL_ID }}
 GMAIL_CREDENTIAL_PATH=credentials.json
 GMAIL_TOKEN_PATH=token.json
 EOF
+
+echo "${GMAIL_CREDENTIALS_JSON}" > credentials.json
+echo "${GMAIL_TOKEN_JSON}" > token.json
 ```
+
+> `sync.yml` 不需要產生 `.env` 或 credential 檔案。
 
 ### 2.4 排程時區對照
 
@@ -222,14 +233,15 @@ on:
 
 #### 完整流程
 
+> Sync 不需要任何 GitHub Secrets（`config.yaml` 中 sync 相關欄位皆為硬編碼值），流程非常簡潔。
+
 ```mermaid
 %%{init: {'theme':'dark'}}%%
 flowchart TD
     TRIGGER["Cron 觸發 / 手動 dispatch"] --> CHECKOUT["Checkout repo<br/>(含 data/line_tasks.db)"]
     CHECKOUT --> SETUP_GO["Setup Go 1.22"]
     SETUP_GO --> CACHE["Restore Go Module Cache"]
-    CACHE --> WRITE_ENV["產生 .env<br/>(從 Secrets 注入)"]
-    WRITE_ENV --> BUILD["go build -o bin/scheduler<br/>./cmd/scheduler"]
+    CACHE --> BUILD["go build -o bin/scheduler<br/>./cmd/scheduler"]
     BUILD --> SYNC["./bin/scheduler sync<br/>--config config/config.yaml"]
     SYNC --> CHECK_DIFF{"git diff --quiet<br/>data/line_tasks.db?"}
     CHECK_DIFF -->|"有變更"| COMMIT["git add data/line_tasks.db<br/>git commit<br/>git push"]
@@ -242,39 +254,12 @@ flowchart TD
 **Step 1: Checkout**
 - `actions/checkout@v4`
 - 需設定 `fetch-depth: 0` 以取得完整歷史（commit-back 需要）
-- 需設定 `token: ${{ secrets.GITHUB_TOKEN }}` 以允許 push
+- 需設定 `token: ${{ secrets.GITHUB_TOKEN }}` 以允許 push（此為 GitHub 自動注入，非自建 Secret）
 
 **Step 2: Setup Go + Cache**
 - 同 CI Pipeline
 
-**Step 3: 產生 .env 與 Credential 檔案**
-- 從 GitHub Secrets 產生 `.env` 檔案
-- 從 Secrets 還原 `credentials.json` 與 `token.json`（Sync 本身不需要，但 config 載入時可能驗證路徑存在）
-
-```yaml
-- name: Generate runtime environment
-  env:
-    DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-    DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
-    DISCORD_NOTIFY_CHANNEL_ID: ${{ secrets.DISCORD_NOTIFY_CHANNEL_ID }}
-    DISCORD_ADMIN_CHANNEL_ID: ${{ secrets.DISCORD_ADMIN_CHANNEL_ID }}
-    GMAIL_CREDENTIALS_JSON: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
-    GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
-  run: |
-    cat <<EOF > .env
-    DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-    DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
-    DISCORD_NOTIFY_CHANNEL_ID=${DISCORD_NOTIFY_CHANNEL_ID}
-    DISCORD_ADMIN_CHANNEL_ID=${DISCORD_ADMIN_CHANNEL_ID}
-    GMAIL_CREDENTIAL_PATH=credentials.json
-    GMAIL_TOKEN_PATH=token.json
-    EOF
-
-    echo "${GMAIL_CREDENTIALS_JSON}" > credentials.json
-    echo "${GMAIL_TOKEN_JSON}" > token.json
-```
-
-**Step 4: Build + Sync**
+**Step 3: Build + Sync**
 ```yaml
 - name: Build scheduler
   run: go build -o bin/scheduler ./cmd/scheduler
@@ -283,7 +268,7 @@ flowchart TD
   run: ./bin/scheduler sync --config config/config.yaml
 ```
 
-**Step 5: Commit-back**
+**Step 4: Commit-back**
 ```yaml
 - name: Commit and push DB changes
   run: |
@@ -305,8 +290,7 @@ flowchart TD
 | S2  | Cron 觸發，DB 無變更  | Sync 執行成功；不產生 commit                           |
 | S3  | `workflow_dispatch`   | 手動觸發完整 Sync + commit-back 流程                   |
 | S4  | API 呼叫失敗          | Sync 回傳 error；Workflow 標記為 failed；不產生 commit |
-| S5  | Secrets 未設定        | `.env` 產生空值；Sync 可能因 config 驗證失敗而報錯     |
-| S6  | commit-back 觸發 CI？ | 不會觸發：`ci.yml` 設定 `paths-ignore: data/**`        |
+| S5  | commit-back 觸發 CI？ | 不會觸發：`ci.yml` 設定 `paths-ignore: data/**`        |
 
 ---
 
@@ -347,9 +331,16 @@ flowchart TD
 
 #### 各階段詳細設計
 
-**Step 1–3**：同 `sync.yml`（Checkout + Setup Go + 產生 .env）。
+**Step 1: Checkout + Setup Go + Cache**
+- 同 CI Pipeline / sync.yml
 
-**Step 4: Build + Notify**
+**Step 2: 產生 .env 與 Credential 檔案**
+- 從 GitHub Secrets 產生 `.env` 檔案（Notify 需要 Discord + Gmail 環境變數）
+- 從 Secrets 還原 `credentials.json` 與 `token.json`
+- 具體 Shell Script 見 §2.3「.env 產生策略」
+
+**Step 3: Build + Notify**
+
 ```yaml
 - name: Build scheduler
   run: go build -o bin/scheduler ./cmd/scheduler
@@ -426,9 +417,9 @@ runs:
 
 > 各 Workflow 透過 `uses: ./.github/actions/setup-go` 引用此 Composite Action。
 
-### 4.2 .env 產生 Step（可複用 Shell Block）
+### 4.2 .env 產生 Step（僅 `notify.yml`）
 
-為 `sync.yml` 與 `notify.yml` 共用的 `.env` 與 Credential 檔案產生邏輯，透過 YAML Anchor 或直接在各 Workflow 中複製（GitHub Actions 不支援跨 Workflow 的 YAML Anchor）。
+`.env` 與 Credential 檔案的產生邏輯僅用於 `notify.yml`（`sync.yml` 與 `ci.yml` 不需要任何 Secrets）。具體 Shell Script 見 §2.3「.env 產生策略」。
 
 ---
 
@@ -454,7 +445,8 @@ runs:
 ### 6.1 Secrets 管理
 
 - 所有敏感資訊（Token、Credential）僅透過 GitHub Secrets 儲存，**絕不寫入** repo 中的任何檔案
-- Workflow 中產生的 `.env`、`credentials.json`、`token.json` 為 **runner 內暫存**，job 結束後自動銷毀
+- 僅 `notify.yml` 會在 runner 中產生 `.env`、`credentials.json`、`token.json`，為 **runner 內暫存**，job 結束後自動銷毀
+- `sync.yml` 完全不接觸任何 Secrets，降低洩漏風險
 - `.gitignore` 已包含 `.env`、`credentials.json`、`token.json`，確保即使 commit-back step 有 bug 也不會意外提交
 
 ### 6.2 權限最小化
@@ -496,7 +488,7 @@ permissions:
 | ---- | --------------------------- | ------------------------------------ | --------------------------------------------------------------- | -------------------------- |
 | 1    | Composite Action            | 定義 setup-go 的 inputs/outputs 規格 | 實作 `action.yml`                                               | —                          |
 | 2    | `ci.yml`                    | §3.1 C1–C8 行為契約                  | 實作 CI Pipeline（lint → unit test → integration test → build） | 抽取 Composite Action 引用 |
-| 3    | `sync.yml`                  | §3.2 S1–S6 行為契約                  | 實作 Sync Pipeline + commit-back                                | `.env` 產生邏輯調整        |
+| 3    | `sync.yml`                  | §3.2 S1–S5 行為契約                  | 實作 Sync Pipeline + commit-back（無需 Secrets）                | —                          |
 | 4    | `notify.yml`                | §3.3 N1–N6 行為契約                  | 實作 Notify Pipeline + date 參數支援                            | —                          |
 | 5    | AGENTS.md + .gitignore 更新 | —                                    | 補充 CI/CD 說明至 AGENTS.md                                     | —                          |
 
