@@ -1,0 +1,29 @@
+# IT-2-04: L3 Hash Change - Sync Again
+# Scenario: An existing keyword activity has its detail page updated.
+# Expected: L3 hash changes, old daily_tasks are replaced with new ones.
+
+# 1. First Sync
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+cp $ROOT_DIR/tests/fixture/api/api_list.json api_list.json
+exec sed -i s|MOCK_API_URL|$MOCK_LINE_API|g api_list.json
+mock-api api_list.json $ROOT_DIR/tests/fixture/html/detail.html
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+db-count daily_tasks 2
+db-query 'SELECT keyword FROM daily_tasks WHERE use_date LIKE "%03-01%"'
+stdout '^KW0301$'
+
+# 2. Update Detail HTML
+exec sh -c 'printf "<!DOCTYPE html>\n<html>\n<body>\n    <h1>賺點活動 V2</h1>\n    <ul>\n        <li>3月1日請輸入：<a href=\"https://line.me/R/oaMessage/@lineshoppingtw/?NEW0301\">NEW0301</a></li>\n    </ul>\n</body>\n</html>" > detail_v2.html'
+
+# 3. Second Sync with an additional activity (to trigger T1/T2)
+exec sh -c 'printf "{\n    \"status\": \"OK\",\n    \"result\": {\n        \"dataList\": [\n            {\n                \"eventId\": \"ACT-KW\",\n                \"eventTitle\": \"Keyword Activity\",\n                \"channelName\": \"LINE 購物\",\n                \"clickUrl\": \"$MOCK_LINE_API/detail_v2.html\",\n                \"eventStartTime\": \"2026-03-01 00:00:00\",\n                \"eventEndTime\": \"2026-03-31 23:59:59\"\n            },\n            {\n                \"eventId\": \"ACT-DUMMY\",\n                \"eventTitle\": \"Dummy Activity\",\n                \"channelName\": \"LINE 購物\",\n                \"clickUrl\": \"$MOCK_LINE_API/detail_share.html\",\n                \"eventStartTime\": \"2026-03-01 00:00:00\",\n                \"eventEndTime\": \"2026-03-31 23:59:59\"\n            }\n        ],\n        \"pageToken\": null\n    }\n}" > api_list_v2.json'
+mock-api api_list_v2.json detail_v2.html $ROOT_DIR/tests/fixture/html/detail_share.html
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+stderr 'Changes detected and updated'
+
+# 4. Verify DB state
+db-count daily_tasks 1
+db-query 'SELECT keyword FROM daily_tasks WHERE use_date LIKE "%03-01%"'
+stdout '^NEW0301$'
+db-query 'SELECT COUNT(*) FROM daily_tasks WHERE keyword = "KW0301"'
+stdout '^0$'

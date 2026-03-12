@@ -1,0 +1,29 @@
+# Binaries
+bin/
+scheduler
+
+# Logs
+logs/
+*.log
+
+# SQLite runtime files
+*.db-shm
+*.db-wal
+
+# Environment and Secrets
+.env
+credentials.json
+token.json
+
+# Go dependencies
+vendor/
+
+# OS files
+.DS_Store
+
+# Local dev
+.vscode/
+.idea/
+.claude/
+.local-dev/
+CLAUDE.md

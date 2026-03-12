@@ -1,0 +1,29 @@
+# IT-2-01: New Activity - Keyword Type
+# Scenario: Sync detects a new activity, fetches its detail page, identifies it as 'keyword' type, and extracts daily tasks.
+
+# 1. Initialize
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+
+# 2. Setup mock server responses
+# Request 1: API list
+# Request 2: Detail page HTML
+cp $ROOT_DIR/tests/fixture/api/api_list.json api_list.json
+mock-api api_list.json $ROOT_DIR/tests/fixture/html/detail.html
+
+# 3. Inject mock server URL into API response
+exec sed -i s|MOCK_API_URL|$MOCK_LINE_API|g api_list.json
+
+# 4. Sync
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+stderr 'Changes detected and updated'
+
+# 5. Verify Activity Type
+db-query 'SELECT type FROM activities WHERE id = "ACT-KW"'
+stdout '^keyword$'
+
+# 6. Verify Daily Tasks extracted
+db-count daily_tasks 2
+db-query 'SELECT keyword, use_date FROM daily_tasks ORDER BY use_date ASC'
+stdout 'KW0301\t2026-03-01'
+stdout 'KW0302\t2026-03-02'
+

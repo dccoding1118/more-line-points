@@ -1,0 +1,21 @@
+# IT-2-05: L3 Fetch Failure - Error Handling
+# Scenario: Synchronization encounters an HTTP 404 or 500 when fetching activity detail pages.
+# Expected: Activity remains 'unknown', no crash, other activities progress normally.
+
+# 1. Setup mock server with a 404 error
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+cp $ROOT_DIR/tests/fixture/api/api_list.json api_list.json
+exec sed -i s|MOCK_API_URL|$MOCK_LINE_API|g api_list.json
+
+# Define a non-existent page (server returns 404 for unknown files automatically in setupMockServer)
+mock-api api_list.json non_existent.html
+
+# 2. Execute sync
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+stderr 'failed to sync L3 for ACT-KW'
+
+# 3. Verify DB state
+db-query 'SELECT type FROM activities WHERE id = "ACT-KW"'
+stdout '^unknown$'
+db-count daily_tasks 0
+db-count activities 1

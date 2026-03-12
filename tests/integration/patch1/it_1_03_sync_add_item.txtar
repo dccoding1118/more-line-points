@@ -1,0 +1,17 @@
+# IT-1-03: Sync - Add New Activity
+# Scenario: Adding a new activity to an existing list.
+
+# 1. Initial state
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+db-insert $ROOT_DIR/tests/fixture/db/seed_A.sql
+
+# 2. Sync with A and B
+mock-api $ROOT_DIR/tests/fixture/api/api_AB.json
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+stderr 'Changes detected and updated'
+
+# 3. Verify counts
+db-count activities 2
+db-query 'SELECT id FROM activities ORDER BY id ASC'
+stdout 'ACT-A\nACT-B'
+

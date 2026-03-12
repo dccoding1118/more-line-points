@@ -1,0 +1,32 @@
+database:
+  path: "data/line_tasks.db"
+
+channel_mapping:
+  path: "config/channel_mapping.yaml"
+
+api:
+  base_url: "https://ec-bot-web.line-apps.com/event-wall/home"
+  region: "tw"
+  headers:
+    origin: "https://event.line.me"
+    referer: "https://event.line.me/bulletin/tw"
+    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+parser:
+  rules_path: config/parse_rules.yaml
+
+discord:
+  enabled: false
+  bot_token: "${DISCORD_BOT_TOKEN}"
+  guild_id: "${DISCORD_GUILD_ID}"
+  notify_channel_id: "${DISCORD_NOTIFY_CHANNEL_ID}"
+  admin_channel_id: "${DISCORD_ADMIN_CHANNEL_ID}"
+  api_endpoint: "" # 留空將使用 Discord 官方預設 API，僅於測試或自架端點時才需填寫
+
+email:
+  enabled: true
+  credentials_path: "${GMAIL_CREDENTIAL_PATH}"
+  token_path: "${GMAIL_TOKEN_PATH}"
+  sender: "windyskykarl912@gmail.com"
+  recipients:
+    - "windyskykarl912@gmail.com"

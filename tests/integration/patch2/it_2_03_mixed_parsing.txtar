@@ -1,0 +1,21 @@
+# IT-2-03: New Activity - Mixed Type Page
+# Scenario: Sync detects a new activity with multiple action types in its detail page.
+
+# 1. Initialize
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+
+# 2. Setup mock server responses
+cp $ROOT_DIR/tests/fixture/api/api_mixed.json api_mixed.json
+exec sed -i s|MOCK_API_URL|$MOCK_LINE_API|g api_mixed.json
+mock-api api_mixed.json $ROOT_DIR/tests/fixture/html/detail_mixed.html
+
+# 3. Execute sync
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+stderr 'Changes detected and updated'
+
+# 4. Verify DB state
+# Note: In mixed pages, priority depends on parser implementation.
+# Here we expect 'keyword' to be recognized if daily tasks are found.
+db-query 'SELECT type FROM activities WHERE id = "ACT-MIXED"'
+stdout '^keyword$'
+db-count daily_tasks 1

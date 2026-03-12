@@ -1,0 +1,12 @@
+# IT-0-04: Config Not Found
+# Scenario: Error when config file path is invalid.
+
+! exec scheduler init --config non_existent.yaml
+stderr 'failed to read config file'
+
+-- dummy --
+# Just to satisfy txtar
+-- channel_mapping.yaml --
+mappings:
+  "LINE 購物": "@lineshoppingtw"
+on_missing: warn

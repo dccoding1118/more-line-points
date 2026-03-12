@@ -1,0 +1,14 @@
+# IT-0-01: Config -> DB Initialization
+# Scenario: Initialize the system with a valid config, ensuring directory and DB schema are created.
+
+# Execute init command
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+
+# Verify output and side effects
+stdout 'Initialization complete'
+exists data/test.db
+
+# Verify DB schema through custom commands
+db-count activities 0
+db-count sync_state 0
+db-count daily_tasks 0

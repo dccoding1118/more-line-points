@@ -1,0 +1,10 @@
+# IT-3-02: channel_id 未對應 (warn)
+
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+db-insert $ROOT_DIR/tests/fixture/db/seed_no_channel_mapping.sql
+
+exec scheduler notify --config $ROOT_DIR/tests/fixture/config/config.yaml --date 2026-03-05
+
+stderr 'channel mapping not found for "Unknown Channel XY", showing with warning'
+stderr 'Notification sent'
+mock-discord contains '⚠️'

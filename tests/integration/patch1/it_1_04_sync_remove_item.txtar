@@ -1,0 +1,16 @@
+# IT-1-04: Sync - Activity Disappears
+# Scenario: An activity is no longer in the API, should be marked inactive.
+
+# 1. Initial state
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+db-insert $ROOT_DIR/tests/fixture/db/seed_AB.sql
+
+# 2. Sync with only A
+mock-api $ROOT_DIR/tests/fixture/api/api_A.json
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+stderr 'Changes detected and updated'
+
+# 3. Verify B is inactive
+db-query 'SELECT is_active FROM activities WHERE id = "ACT-B"'
+stdout '^0$'
+

@@ -1,0 +1,18 @@
+# IT-2-02: New Activity - Share Type
+# Scenario: Sync detects a new activity, fetches its detail page, identifies it as 'share' type.
+
+# 1. Initialize
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+
+# 2. Setup mock server responses
+cp $ROOT_DIR/tests/fixture/api/api_share.json api_share.json
+exec sed -i s|MOCK_API_URL|$MOCK_LINE_API|g api_share.json
+mock-api api_share.json $ROOT_DIR/tests/fixture/html/detail_share.html
+
+# 3. Execute sync
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+stderr 'Changes detected and updated'
+
+# 4. Verify DB state
+db-query 'SELECT type FROM activities WHERE id = "ACT-SHARE"'
+stdout '^share$'

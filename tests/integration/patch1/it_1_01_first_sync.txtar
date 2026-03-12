@@ -1,0 +1,21 @@
+# IT-1-01: First Sync - Empty DB
+# Scenario: First sync against empty database, API returns 5 activities across 2 pages.
+# Expected: 5 activities inserted, all type=unknown, sync_state populated.
+
+# Setup mock API with 2-page response
+mock-api $ROOT_DIR/tests/fixture/api/api_5activities_2pages_p1.json $ROOT_DIR/tests/fixture/api/api_5activities_2pages_p2.json
+
+# Execute sync
+exec scheduler sync --config $ROOT_DIR/tests/fixture/config/config.yaml
+
+# Verify stderr log (log.Println writes to stderr by default)
+stderr 'Changes detected and updated'
+
+# Verify DB state
+db-count activities 5
+db-count sync_state 6 # L1 + 5xL2
+db-query 'SELECT COUNT(*) FROM activities WHERE type = "unknown"'
+stdout '^4$'
+db-query 'SELECT COUNT(*) FROM activities WHERE is_active = 1'
+stdout '^5$'
+

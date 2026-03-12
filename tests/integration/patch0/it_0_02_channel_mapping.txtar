@@ -1,0 +1,9 @@
+# IT-0-02: Channel Mapping Validation
+# Scenario: Ensure channel mapping is correctly loaded and usable during init (implicit validation).
+
+# Execute init command
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+
+# Verify success
+stdout 'Initialization complete'
+

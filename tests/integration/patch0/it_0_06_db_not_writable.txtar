@@ -1,0 +1,9 @@
+# IT-0-06: DB Path Not Writable
+# Scenario: Error when database path is not writable.
+
+# We simulate this by creating a directory where the file should be
+mkdir data/test.db
+
+! exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+stderr 'unable to open database file'
+

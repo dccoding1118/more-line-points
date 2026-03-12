@@ -1,0 +1,37 @@
+rules:
+  - type: keyword
+    text_patterns: ["輸入關鍵字", "指定關鍵字", "完整關鍵字"]
+    url_pattern: "line.me/R/oaMessage/"
+    has_daily_tasks: true
+    has_keyword: true
+
+  - type: share
+    text_patterns: ["分享連結"]
+    url_pattern: "event.line.me/s/"
+
+  - type: passport
+    text_patterns: ["LINE購物護照"]
+    url_pattern: "ec-bot-web.line.me"
+
+  - type: shop-collect
+    text_patterns: ["收藏指定店家"]
+    url_pattern: "buy.line.me/u/partner/"
+    has_daily_tasks: true
+
+  - type: lucky-draw
+    text_patterns: ["點我試手氣", "點我*試手氣"] # * = 萬用字元
+    url_pattern: "event.line.me/r/"
+
+  - type: app-checkin
+    text_patterns: ["點我簽到", "App簽到"]
+    url_pattern: "buy.line.me"
+
+  - type: poll
+    url_pattern: "event.line.me/poll/"
+    url_only: true # 僅需 URL pattern，跳過 HTML 抓取
+    use_click_url: true # action_url = clickURL
+
+# 鄰近文字日期提取 pattern
+date_patterns:
+  - '(\d{1,2})[月/](\d{1,2})[日]?' # 3月1日、3/1、03/05
+  - '^(\d{2})(\d{2})' # 0301（關鍵字文字開頭 MMDD）

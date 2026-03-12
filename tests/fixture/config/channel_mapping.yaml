@@ -1,0 +1,3 @@
+mappings:
+  "LINE 購物": "@lineshoppingtw"
+on_missing: warn

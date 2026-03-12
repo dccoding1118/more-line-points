@@ -1,0 +1,16 @@
+# channelName（來自 API）→ LINE channel_id（@xxx）
+# 用途：在 activities 表中填入 channel_id，供 Telegram deep link 生成使用
+mappings:
+  "LINE 購物": "@lineshopping_tw"
+  "LINE購物品牌名店": "@commercetw"
+  "LINE購物 夯話題": "@twechottopic"
+  "LINE 禮物": "@linegiftshoptw"
+  "LINE Pay": "@linepay"
+  "LINE TODAY": "@linetoday"
+  "LINE POINTS": "@linepointstw"
+
+# 遇到未對應的 channelName 時的行為
+# warn: 記錄 warning log，channel_id 設為空字串，繼續處理
+# skip: 跳過該活動，不寫入 DB
+# error: 中止整個 Sync
+on_missing: warn

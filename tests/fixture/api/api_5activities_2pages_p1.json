@@ -1,0 +1,32 @@
+{
+  "status": "OK",
+  "result": {
+    "dataList": [
+      {
+        "eventId": "ACT-A",
+        "eventTitle": "LINE 購物集點",
+        "channelName": "LINE 購物",
+        "clickUrl": "https://buy.line.me/A",
+        "eventStartTime": "2026-03-01 00:00:00",
+        "eventEndTime": "2026-03-31 23:59:59"
+      },
+      {
+        "eventId": "ACT-B",
+        "eventTitle": "LINE Pay 回饋",
+        "channelName": "LINE Pay",
+        "clickUrl": "https://pay.line.me/B",
+        "eventStartTime": "2026-03-01 00:00:00",
+        "eventEndTime": "2026-03-31 23:59:59"
+      },
+      {
+        "eventId": "ACT-C",
+        "eventTitle": "好友分享抽獎",
+        "channelName": "LINE",
+        "clickUrl": "https://event.line.me/C",
+        "eventStartTime": "2026-03-01 00:00:00",
+        "eventEndTime": "2026-03-31 23:59:59"
+      }
+    ],
+    "pageToken": "PAGE2"
+  }
+}

@@ -1,0 +1,13 @@
+rules:
+  - type: keyword
+    url_pattern: "line.me/R/oaMessage/"
+    has_daily_tasks: true
+    has_keyword: true
+  - type: share
+    url_pattern: "line.me/R/nv/recommendRecommendId/"
+    has_daily_tasks: false
+  - type: direct
+    url_pattern: "buy.line.me/"
+    has_daily_tasks: false
+date_patterns:
+  - '(\d{1,2})[月/](\d{1,2})[日]?'

@@ -1,0 +1,24 @@
+{
+  "status": "OK",
+  "result": {
+    "dataList": [
+      {
+        "eventId": "ACT-D",
+        "eventTitle": "集點卡任務",
+        "channelName": "LINE Points",
+        "clickUrl": "https://points.line.me/D",
+        "eventStartTime": "2026-03-01 00:00:00",
+        "eventEndTime": "2026-03-31 23:59:59"
+      },
+      {
+        "eventId": "ACT-E",
+        "eventTitle": "新活動",
+        "channelName": "LINE TODAY",
+        "clickUrl": "https://today.line.me/E",
+        "eventStartTime": "2026-03-01 00:00:00",
+        "eventEndTime": "2026-04-15 23:59:59"
+      }
+    ],
+    "pageToken": null
+  }
+}

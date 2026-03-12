@@ -1,0 +1,28 @@
+database:
+  path: data/test.db
+channel_mapping:
+  path: $ROOT_DIR/tests/fixture/config/channel_mapping.yaml
+parser:
+  rules_path: $ROOT_DIR/tests/fixture/config/parse_rules.yaml
+api:
+  base_url: $MOCK_LINE_API
+  region: tw
+  headers:
+    origin: "https://event.line.me"
+    referer: "https://event.line.me/bulletin/tw"
+    user-agent: "TestAgent/1.0"
+discord:
+  enabled: true
+  bot_token: "mock-discord-token"
+  guild_id: "mock-guild"
+  notify_channel_id: "mock-channel"
+  admin_channel_id: "mock-admin-channel"
+  api_endpoint: $MOCK_DISCORD_API
+email:
+  enabled: true
+  smtp_host: "127.0.0.1"
+  smtp_port: 25
+  sender: "bot@localhost"
+  password: "dummy"
+  recipients:
+    - "test@localhost"

@@ -1,0 +1,13 @@
+# IT-0-05: Config Format Error
+# Scenario: Error when config file is not valid YAML.
+
+! exec scheduler init --config broken_config.yaml
+stderr 'failed to parse config'
+
+-- broken_config.yaml --
+database: [
+  path: {
+-- channel_mapping.yaml --
+mappings:
+  "LINE 購物": "@lineshoppingtw"
+on_missing: warn

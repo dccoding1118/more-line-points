@@ -1,0 +1,24 @@
+[tools]
+go = "1.22"
+golangci-lint = "2.9.0"
+gofumpt = "latest"
+
+[tasks.fmt]
+description = "Format code with gofumpt"
+run = "gofumpt -extra -w ."
+
+[tasks.lint]
+description = "Run golangci-lint"
+run = "golangci-lint run"
+
+[tasks.test]
+description = "Run tests with coverage"
+run = "mkdir -p logs && go test -coverprofile=logs/coverage.out ./... > logs/unit_test_report.log 2>&1"
+
+[tasks.test-integration]
+description = "Run integration tests and output report to logs/"
+run = "mkdir -p logs && go test -v -tags integration ./tests/helpers/... > logs/integration_test_report.log 2>&1"
+
+[tasks.build]
+description = "Build the scheduler binary"
+run = "go build -o bin/scheduler ./cmd/scheduler"

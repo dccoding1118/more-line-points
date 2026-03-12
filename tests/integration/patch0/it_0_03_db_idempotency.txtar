@@ -1,0 +1,18 @@
+# IT-0-03: DB Re-initialization Idempotency
+# Scenario: Running init twice should not fail and should preserve existing data.
+
+# 1. First init
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+stdout 'Initialization complete'
+
+# 2. Insert some dummy data manually
+db-insert $ROOT_DIR/tests/fixture/db/seed_simple.sql
+db-count activities 1
+
+# 3. Second init
+exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
+stdout 'Initialization complete'
+
+# 4. Verify data is still there
+db-count activities 1
+
