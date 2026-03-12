@@ -127,6 +127,47 @@ mise run build   # Build binary → bin/scheduler
 
 ---
 
+## CI/CD (GitHub Actions)
+
+### Workflow Files
+
+| File                                  | Purpose                                          | Trigger                                  |
+| ------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
+| `.github/actions/setup-go/action.yml` | Composite Action: setup Go + module cache        | Referenced by all workflows              |
+| `.github/workflows/ci.yml`            | Lint → Unit Test → Integration Test → Build      | `push`/`pull_request` to `main`, manual  |
+| `.github/workflows/sync.yml`         | Sync LINE events + auto commit-back DB           | Cron schedule (3x daily), manual         |
+| `.github/workflows/notify.yml`       | Notify daily tasks via Discord & Email           | Cron schedule (1x daily), manual         |
+
+### Cron Schedule (UTC → Taiwan UTC+8)
+
+| Workflow     | Cron (UTC)    | Taiwan Time (UTC+8) | Description  |
+| ------------ | ------------- | -------------------- | ------------ |
+| `sync.yml`   | `0 4 * * *`   | 12:00                | Noon sync    |
+| `sync.yml`   | `0 15 * * *`  | 23:00                | Evening sync |
+| `sync.yml`   | `5 16 * * *`  | 00:05 (+1d)          | Midnight sync|
+| `notify.yml` | `50 15 * * *` | 23:50                | Daily notify |
+
+### GitHub Secrets Required
+
+| Secret Name                 | Purpose                           |
+| --------------------------- | --------------------------------- |
+| `DISCORD_BOT_TOKEN`         | Discord Bot Token                 |
+| `DISCORD_GUILD_ID`          | Discord Guild (Server) ID         |
+| `DISCORD_NOTIFY_CHANNEL_ID` | Notification Channel ID           |
+| `DISCORD_ADMIN_CHANNEL_ID`  | Admin Channel ID                  |
+| `GMAIL_CREDENTIALS_JSON`    | Gmail API credentials.json content|
+| `GMAIL_TOKEN_JSON`          | Gmail API token.json content      |
+
+### CI/CD Rules
+
+- **CI does not use `mise`**: Workflows use Go CLI and official GitHub Actions directly
+- **`ci.yml` `paths-ignore`**: Changes to `data/**`, `docs/**`, `*.md` do NOT trigger CI
+- **Sync commit-back**: Uses `github-actions[bot]` as commit author with message `chore(data): auto-sync line_tasks.db`
+- **No infinite loop**: `sync.yml` commit-back only touches `data/`, which is excluded from CI triggers
+- **Permissions**: `ci.yml` → `contents: read`, `sync.yml` → `contents: write`, `notify.yml` → `contents: read`
+
+---
+
 ## Important Notes
 
 - `data/line_tasks.db` is tracked in Git (commit-back mechanism via GitHub Actions)

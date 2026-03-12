@@ -1,0 +1,40 @@
+name: Sync
+
+on:
+  schedule:
+    - cron: '0 4 * * *'    # UTC 04:00 = TWN 12:00
+    - cron: '0 15 * * *'   # UTC 15:00 = TWN 23:00
+    - cron: '5 16 * * *'   # UTC 16:05 = TWN 00:05
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync LINE Events
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./.github/actions/setup-go
+        with:
+          go-version: '1.22'
+
+      - name: Build scheduler
+        run: go build -o bin/scheduler ./cmd/scheduler
+
+      - name: Run sync
+        run: ./bin/scheduler sync --config config/config.yaml
+
+      - name: Commit and push DB changes
+        run: |
+          git diff --quiet data/line_tasks.db && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/line_tasks.db
+          git commit -m "chore(data): auto-sync line_tasks.db"
+          git push

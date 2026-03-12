@@ -1,0 +1,57 @@
+name: Notify
+
+on:
+  schedule:
+    - cron: '50 15 * * *'   # UTC 15:50 = TWN 23:50
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Target date (YYYY-MM-DD), defaults to tomorrow'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Notify Daily Tasks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-go
+        with:
+          go-version: '1.22'
+
+      - name: Generate runtime environment
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_NOTIFY_CHANNEL_ID: ${{ secrets.DISCORD_NOTIFY_CHANNEL_ID }}
+          DISCORD_ADMIN_CHANNEL_ID: ${{ secrets.DISCORD_ADMIN_CHANNEL_ID }}
+          GMAIL_CREDENTIALS_JSON: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
+          GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
+        run: |
+          cat <<EOF > .env
+          DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+          DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
+          DISCORD_NOTIFY_CHANNEL_ID=${DISCORD_NOTIFY_CHANNEL_ID}
+          DISCORD_ADMIN_CHANNEL_ID=${DISCORD_ADMIN_CHANNEL_ID}
+          GMAIL_CREDENTIAL_PATH=credentials.json
+          GMAIL_TOKEN_PATH=token.json
+          EOF
+
+          echo "${GMAIL_CREDENTIALS_JSON}" > credentials.json
+          echo "${GMAIL_TOKEN_JSON}" > token.json
+
+      - name: Build scheduler
+        run: go build -o bin/scheduler ./cmd/scheduler
+
+      - name: Run notify
+        run: |
+          DATE_ARG=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE_ARG="--date ${{ github.event.inputs.date }}"
+          fi
+          ./bin/scheduler notify --config config/config.yaml ${DATE_ARG}

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/**'
+      - 'docs/**'
+      - '*.md'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'data/**'
+      - 'docs/**'
+      - '*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-go
+        with:
+          go-version: '1.22'
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.9.0
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Unit tests
+        run: go test -v -coverprofile=coverage.out -race ./...
+
+      - name: Integration tests
+        run: go test -v -tags integration ./tests/helpers/...
+
+      - name: Build
+        run: go build -o bin/scheduler ./cmd/scheduler
