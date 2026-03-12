@@ -142,7 +142,7 @@ func (s *gmailSender) saveToken(path string, token *oauth2.Token) {
 		log.Fatalf("unable to cache oauth token: %v", err)
 	}
 	defer func() { _ = f.Close() }()
-	if err := json.NewEncoder(f).Encode(token); err != nil {
+	if err := json.NewEncoder(f).Encode(token); err != nil { //nolint:gosec // G117: intentionally saving oauth token to file
 		log.Fatalf("unable to encode oauth token: %v", err)
 	}
 }

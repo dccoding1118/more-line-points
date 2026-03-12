@@ -28,7 +28,6 @@ linters:
     gosec:
       excludes:
         - G104
-        - G117
     govet:
       enable-all: true
       disable:
