@@ -33,7 +33,7 @@ var categories = []categoryDef{
 // formatDiscord produces Discord-compatible Markdown.
 func formatDiscord(dateLabel string, classified map[string][]displayItem) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("**📅 %s LINE 任務清單**", dateLabel))
+	fmt.Fprintf(&sb, "**📅 %s LINE 任務清單**", dateLabel)
 
 	hasContent := false
 	for _, cat := range categories {
@@ -42,15 +42,15 @@ func formatDiscord(dateLabel string, classified map[string][]displayItem) string
 			continue
 		}
 		hasContent = true
-		sb.WriteString(fmt.Sprintf("\n\n**%s %s**", cat.emoji, cat.title))
+		fmt.Fprintf(&sb, "\n\n**%s %s**", cat.emoji, cat.title)
 		for _, item := range items {
 			sb.WriteString("\n")
 			if item.warning {
-				sb.WriteString(fmt.Sprintf("• ⚠️ %s (需手動前往頻道)", item.label))
+				fmt.Fprintf(&sb, "• ⚠️ %s (需手動前往頻道)", item.label)
 			} else if item.url != "" {
-				sb.WriteString(fmt.Sprintf("• [%s](%s)", item.label, item.url))
+				fmt.Fprintf(&sb, "• [%s](%s)", item.label, item.url)
 			} else {
-				sb.WriteString(fmt.Sprintf("• %s", item.label))
+				fmt.Fprintf(&sb, "• %s", item.label)
 			}
 		}
 	}
@@ -65,7 +65,7 @@ func formatDiscord(dateLabel string, classified map[string][]displayItem) string
 // formatEmail produces full HTML with ul/li lists.
 func formatEmail(dateLabel string, classified map[string][]displayItem) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("<h2>📅 %s LINE 任務清單</h2>", dateLabel))
+	fmt.Fprintf(&sb, "<h2>📅 %s LINE 任務清單</h2>", dateLabel)
 
 	hasContent := false
 	for _, cat := range categories {
@@ -74,14 +74,14 @@ func formatEmail(dateLabel string, classified map[string][]displayItem) string {
 			continue
 		}
 		hasContent = true
-		sb.WriteString(fmt.Sprintf("\n<h3>%s %s</h3>\n<ul>", cat.emoji, cat.title))
+		fmt.Fprintf(&sb, "\n<h3>%s %s</h3>\n<ul>", cat.emoji, cat.title)
 		for _, item := range items {
 			if item.warning {
-				sb.WriteString(fmt.Sprintf("\n  <li>⚠️ %s (需手動前往頻道)</li>", item.label))
+				fmt.Fprintf(&sb, "\n  <li>⚠️ %s (需手動前往頻道)</li>", item.label)
 			} else if item.url != "" {
-				sb.WriteString(fmt.Sprintf("\n  <li><a href=\"%s\">%s</a></li>", item.url, item.label))
+				fmt.Fprintf(&sb, "\n  <li><a href=\"%s\">%s</a></li>", item.url, item.label)
 			} else {
-				sb.WriteString(fmt.Sprintf("\n  <li>%s</li>", item.label))
+				fmt.Fprintf(&sb, "\n  <li>%s</li>", item.label)
 			}
 		}
 		sb.WriteString("\n</ul>")
