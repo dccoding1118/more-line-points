@@ -34,6 +34,9 @@ jobs:
         with:
           version: v2.9.0
 
+      - name: Download modules
+        run: go mod download
+
       - name: Unit tests
         run: go test -v -coverprofile=coverage.out -race ./...
 
