@@ -39,16 +39,18 @@ func newNotifyCmd(ctx context.Context) *cobra.Command {
 }
 
 func runNotify(ctx context.Context, opts *notifyOptions) error {
-	// Parse target date
+	// Parse target date in Asia/Taipei timezone (UTC+8).
+	loc, _ := time.LoadLocation("Asia/Taipei")
+
 	var targetDate time.Time
 	if opts.date != "" {
 		var err error
-		targetDate, err = time.Parse("2006-01-02", opts.date)
+		targetDate, err = time.ParseInLocation("2006-01-02", opts.date, loc)
 		if err != nil {
 			return fmt.Errorf("failed to parse date %q: %w", opts.date, err)
 		}
 	} else {
-		targetDate = time.Now().AddDate(0, 0, 1)
+		targetDate = time.Now().In(loc).AddDate(0, 0, 1)
 	}
 
 	cfg, err := config.Load(opts.configPath)

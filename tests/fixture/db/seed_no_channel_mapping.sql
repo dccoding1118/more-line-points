@@ -1,5 +1,5 @@
 INSERT INTO activities (id, title, channel_name, page_url, type, valid_from, valid_until, is_active, created_at, updated_at) VALUES
-('ACT-UNKNOWN', '未知頻道任務', 'Unknown Channel XY', 'http://u', 'keyword', '2026-03-01', '2026-03-31', 1, '2026-03-01 00:00:00', '2026-03-01 00:00:00');
+('ACT-UNKNOWN', '未知頻道任務', 'Unknown Channel XY', 'http://u', 'keyword', 1772294400, 1774972799, 1, '2026-03-01 00:00:00', '2026-03-01 00:00:00');
 
 INSERT INTO daily_tasks (activity_id, use_date, keyword, url, note) VALUES
 ('ACT-UNKNOWN', '2026-03-05', 'UNKNOWN_KEY', '', '');

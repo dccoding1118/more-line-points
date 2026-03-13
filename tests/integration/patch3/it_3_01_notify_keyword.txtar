@@ -1,10 +1,14 @@
 # IT-3-01: keyword 推播（含 deep link）
+# 台北時間 (UTC+8) 測試
 
 exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
 db-insert $ROOT_DIR/tests/fixture/db/seed_tomorrow_tasks.sql
 
 exec scheduler notify --config $ROOT_DIR/tests/fixture/config/config.yaml --date 2026-03-05
 
+stderr 'Target Date: 2026-03-05'
+stderr 'Activities Found: 1'
 stderr 'Notification sent'
+
 mock-discord contains 'https://line.me/R/oaMessage/'
 mock-discord contains 'SHOP0305'
