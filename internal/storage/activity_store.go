@@ -45,8 +45,13 @@ func (s *SQLiteStore) UpsertActivity(ctx context.Context, a *model.Activity) err
 		t = "unknown"
 	}
 
+	// Store valid_from/valid_until as Unix timestamps (int64) for correct
+	// numeric comparison regardless of timezone formatting.
+	vfUnix := a.ValidFrom.Unix()
+	vuUnix := a.ValidUntil.Unix()
+
 	_, err := s.db.ExecContext(ctx, query,
-		a.ID, a.Title, a.ChannelName, a.ChannelID, t, a.PageURL, a.ValidFrom, a.ValidUntil,
+		a.ID, a.Title, a.ChannelName, a.ChannelID, t, a.PageURL, vfUnix, vuUnix,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to upsert activity: %w", err)
@@ -64,11 +69,11 @@ func (s *SQLiteStore) GetActivity(ctx context.Context, id string) (*model.Activi
 
 	var a model.Activity
 	var chanID, actionURL sql.NullString
-	var validFrom, validUntil sql.NullTime
+	var vfUnix, vuUnix sql.NullInt64
 
 	err := row.Scan(
 		&a.ID, &a.Title, &a.ChannelName, &chanID, &a.Type, &a.PageURL, &actionURL,
-		&validFrom, &validUntil, &a.IsActive, &a.CreatedAt, &a.UpdatedAt,
+		&vfUnix, &vuUnix, &a.IsActive, &a.CreatedAt, &a.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -83,11 +88,11 @@ func (s *SQLiteStore) GetActivity(ctx context.Context, id string) (*model.Activi
 	if actionURL.Valid {
 		a.ActionURL = actionURL.String
 	}
-	if validFrom.Valid {
-		a.ValidFrom = validFrom.Time
+	if vfUnix.Valid {
+		a.ValidFrom = time.Unix(vfUnix.Int64, 0)
 	}
-	if validUntil.Valid {
-		a.ValidUntil = validUntil.Time
+	if vuUnix.Valid {
+		a.ValidUntil = time.Unix(vuUnix.Int64, 0)
 	}
 
 	return &a, nil
@@ -140,7 +145,7 @@ func (s *SQLiteStore) MarkInactive(ctx context.Context, ids []string) error {
 
 func (s *SQLiteStore) CleanExpired(ctx context.Context, cutoff time.Time) (int64, error) {
 	query := `DELETE FROM activities WHERE valid_until < ?;`
-	res, err := s.db.ExecContext(ctx, query, cutoff)
+	res, err := s.db.ExecContext(ctx, query, cutoff.Unix())
 	if err != nil {
 		return 0, fmt.Errorf("failed to clean expired activities: %w", err)
 	}
@@ -183,8 +188,15 @@ func (s *SQLiteStore) GetActivitiesByDate(ctx context.Context, targetDate time.T
 		FROM activities
 		WHERE is_active = 1 AND valid_from <= ? AND valid_until >= ?;
 	`
-	dateStr := targetDate.Format("2006-01-02")
-	rows, err := s.db.QueryContext(ctx, query, dateStr, dateStr)
+
+	// Compute start/end of the target date in Asia/Taipei timezone,
+	// so the query correctly handles timezone-aware second-precision comparison.
+	loc, _ := time.LoadLocation("Asia/Taipei")
+	date := targetDate.In(loc)
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, loc)
+	endOfDay := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 0, loc)
+
+	rows, err := s.db.QueryContext(ctx, query, endOfDay.Unix(), startOfDay.Unix())
 	if err != nil {
 		return nil, fmt.Errorf("failed to query activities by date: %w", err)
 	}
@@ -194,11 +206,11 @@ func (s *SQLiteStore) GetActivitiesByDate(ctx context.Context, targetDate time.T
 	for rows.Next() {
 		var a model.Activity
 		var chanID, actionURL sql.NullString
-		var validFrom, validUntil sql.NullTime
+		var vfUnix, vuUnix sql.NullInt64
 
 		if err := rows.Scan(
 			&a.ID, &a.Title, &a.ChannelName, &chanID, &a.Type, &a.PageURL, &actionURL,
-			&validFrom, &validUntil, &a.IsActive, &a.CreatedAt, &a.UpdatedAt,
+			&vfUnix, &vuUnix, &a.IsActive, &a.CreatedAt, &a.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan activity: %w", err)
 		}
@@ -209,11 +221,11 @@ func (s *SQLiteStore) GetActivitiesByDate(ctx context.Context, targetDate time.T
 		if actionURL.Valid {
 			a.ActionURL = actionURL.String
 		}
-		if validFrom.Valid {
-			a.ValidFrom = validFrom.Time
+		if vfUnix.Valid {
+			a.ValidFrom = time.Unix(vfUnix.Int64, 0)
 		}
-		if validUntil.Valid {
-			a.ValidUntil = validUntil.Time
+		if vuUnix.Valid {
+			a.ValidUntil = time.Unix(vuUnix.Int64, 0)
 		}
 
 		activities = append(activities, a)

@@ -352,6 +352,36 @@ func TestGetActivitiesByDate(t *testing.T) {
 			target:    time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC),
 			wantCount: 0,
 		},
+		{
+			name: "S6: valid_from equals target date with Asia/Taipei timezone",
+			setup: func(store *SQLiteStore) {
+				loc, _ := time.LoadLocation("Asia/Taipei")
+				_ = store.UpsertActivity(ctx, &model.Activity{
+					ID: "s6", Title: "SameDay Start", ChannelName: "ch",
+					PageURL:    "http://x",
+					ValidFrom:  time.Date(2026, 3, 13, 14, 0, 0, 0, loc), // 2026-03-13 14:00 +0800
+					ValidUntil: time.Date(2026, 3, 18, 23, 59, 59, 0, loc),
+				})
+			},
+			target:    time.Date(2026, 3, 13, 0, 0, 0, 0, time.UTC),
+			wantCount: 1,
+			wantIDs:   []string{"s6"},
+		},
+		{
+			name: "S7: valid_until equals target date with Asia/Taipei timezone",
+			setup: func(store *SQLiteStore) {
+				loc, _ := time.LoadLocation("Asia/Taipei")
+				_ = store.UpsertActivity(ctx, &model.Activity{
+					ID: "s7", Title: "SameDay End", ChannelName: "ch",
+					PageURL:    "http://x",
+					ValidFrom:  time.Date(2026, 3, 1, 0, 0, 0, 0, loc),
+					ValidUntil: time.Date(2026, 3, 13, 23, 59, 59, 0, loc), // ends on target day
+				})
+			},
+			target:    time.Date(2026, 3, 13, 0, 0, 0, 0, time.UTC),
+			wantCount: 1,
+			wantIDs:   []string{"s7"},
+		},
 	}
 
 	for _, tc := range cases {

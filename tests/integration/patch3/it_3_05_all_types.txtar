@@ -1,11 +1,15 @@
 # IT-3-05: 8 大任務類型混合推播
+# 台北時間 (UTC+8) 測試
 
 exec scheduler init --config $ROOT_DIR/tests/fixture/config/config.yaml
 db-insert $ROOT_DIR/tests/fixture/db/seed_all_8_types.sql
 
 exec scheduler notify --config $ROOT_DIR/tests/fixture/config/config.yaml --date 2026-03-05
 
+stderr 'Target Date: 2026-03-05'
+stderr 'Activities Found: 8'
 stderr 'Notification sent'
+
 mock-discord contains '🔑'
 mock-discord contains '🛍️'
 mock-discord contains '🎁'
@@ -14,4 +18,5 @@ mock-discord contains '📱'
 mock-discord contains '📗'
 mock-discord contains '🔗'
 mock-discord contains '📌'
+
 
