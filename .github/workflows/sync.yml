@@ -2,9 +2,9 @@ name: Sync
 
 on:
   schedule:
-    - cron: '0 4 * * *'    # UTC 04:00 = TWN 12:00
-    - cron: '0 15 * * *'   # UTC 15:00 = TWN 23:00
-    - cron: '5 16 * * *'   # UTC 16:05 = TWN 00:05
+    - cron: "0 4 * * *" # UTC 04:00 = TWN 12:00
+    - cron: "0 15 * * *" # UTC 15:00 = TWN 23:00
+    - cron: "5 16 * * *" # UTC 16:05 = TWN 00:05
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
 
       - uses: ./.github/actions/setup-go
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       - name: Build scheduler
         run: go build -o bin/scheduler ./cmd/scheduler

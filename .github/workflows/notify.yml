@@ -2,11 +2,11 @@ name: Notify
 
 on:
   schedule:
-    - cron: '30 15 * * *'   # UTC 15:50 = TWN 23:50
+    - cron: "30 15 * * *" # UTC 15:30 = TWN 23:30 (backup; primary via GCP Cloud Scheduler)
   workflow_dispatch:
     inputs:
       date:
-        description: 'Target date (YYYY-MM-DD), defaults to tomorrow'
+        description: "Target date (YYYY-MM-DD), defaults to tomorrow"
         required: false
         type: string
 
@@ -22,7 +22,7 @@ jobs:
 
       - uses: ./.github/actions/setup-go
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       - name: Generate runtime environment
         env:

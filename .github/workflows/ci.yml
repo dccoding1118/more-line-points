@@ -4,15 +4,15 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - 'data/**'
-      - 'docs/**'
-      - '*.md'
+      - "data/**"
+      - "docs/**"
+      - "*.md"
   pull_request:
     branches: [main]
     paths-ignore:
-      - 'data/**'
-      - 'docs/**'
-      - '*.md'
+      - "data/**"
+      - "docs/**"
+      - "*.md"
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
 
       - uses: ./.github/actions/setup-go
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       - name: Lint
         uses: golangci/golangci-lint-action@v7
