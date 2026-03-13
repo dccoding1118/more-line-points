@@ -65,7 +65,7 @@ graph TB
 
     subgraph GHA["GitHub Actions"]
         SYNC_CRON["sync.yml<br/>12:00 / 23:00 / 00:05"]
-        NOTIFY_CRON["notify.yml<br/>23:50"]
+        NOTIFY_CRON["notify.yml<br/>23:30"]
     end
 
     subgraph App["Go 應用程式"]
@@ -284,10 +284,12 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 **流程**：checkout → `go run ./cmd/scheduler sync` → commit & push `data/line_tasks.db`（若有變更）
 
 #### `notify.yml`
-| 排程 (UTC)          | 排程 (TWN) | 用途     |
-| ------------------- | ---------- | -------- |
-| `50 15 * * *`       | 23:50      | 每日推播 |
-| `workflow_dispatch` | —          | 手動觸發 |
+| 排程 (UTC)          | 排程 (TWN) | 用途                                                   |
+| ------------------- | ---------- | ------------------------------------------------------ |
+| `30 15 * * *`       | 23:30      | 每日推播（Cron 備援；主要由 GCP Cloud Scheduler 觸發） |
+| `workflow_dispatch` | —          | 手動觸發 / GCP Cloud Scheduler 外部觸發                |
+
+> **外部排程**：Notify 主要由 GCP Cloud Scheduler 透過 GitHub REST API 觸發 `workflow_dispatch`，使用 Fine-grained PAT 認證（僅 `Actions: Read and write`、限定單一 repo）。
 
 **流程**：checkout → `go run ./cmd/scheduler notify`
 
@@ -433,7 +435,7 @@ flowchart TD
         S5 --> S6
     end
 
-    subgraph notify_flow["notify.yml (23:50)"]
+    subgraph notify_flow["notify.yml (23:30 backup / GCP trigger)"]
         N1["Cron 觸發 or 手動 dispatch"] --> N2["Checkout repo"]
         N2 --> N3["go run ./cmd/scheduler notify"]
         N3 --> N4["Discord/Email 推播完成"]
@@ -632,13 +634,14 @@ on_missing: warn   # warn | skip | error
 
 - **敏感資訊管理**：Discord Bot Token 等私密資訊透過 GitHub Secrets 或環境變數注入，不硬編碼於配置檔。
 - **管理權限**：Bot 互動限定在 `DISCORD_ADMIN_CHANNEL_ID` 指明的頻道內，避免未授權操作。
-- **Email 認證**：使用 Gmail API 進行 OAuth2 認證，捨棄舊有的 SMTP App Password 降低被攔截的風險，且要求從 `.gitignore` 排除 `credentials.json` 與 `token.json`。
+- **Email 認證**：使用 Gmail API 進行 OAuth2 認證（**Production Mode**，refresh token 不受 7 天過期限制），捨棄舊有的 SMTP App Password 降低被攔截的風險，且要求從 `.gitignore` 排除 `credentials.json` 與 `token.json`。
+- **外部排程認證**：GCP Cloud Scheduler 使用 GitHub **Fine-grained PAT**（僅授予 `Actions: Read and write`、限定單一 repo、90 天過期定期輪替），最小化憑證洩漏風險。
 - **API 偽裝**：HTTP 請求帶入瀏覽器 User-Agent 與正確 origin/referer，避免被封鎖。
 
 ### 10.6 可部署性
 
 - **純 Go 編譯**：使用 `modernc.org/sqlite` 免 CGO，支援跨平台編譯。
-- **GitHub Actions 自動化**：零人工介入的排程執行與 DB 持久化。
+- **GitHub Actions 自動化**：排程執行（GCP Cloud Scheduler 外部觸發 + GitHub Cron 備援）與 DB 持久化，零人工介入。
 - **Bot 部署靈活性**：支援 Render free tier 雲端常駐或本機背景執行。
 
 ### 10.7 可擴充性
