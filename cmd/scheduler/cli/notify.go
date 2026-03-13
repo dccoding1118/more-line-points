@@ -50,7 +50,7 @@ func runNotify(ctx context.Context, opts *notifyOptions) error {
 			return fmt.Errorf("failed to parse date %q: %w", opts.date, err)
 		}
 	} else {
-		targetDate = time.Now().In(loc).AddDate(0, 0, 1)
+		targetDate = time.Now().In(loc)
 	}
 
 	cfg, err := config.Load(opts.configPath)
