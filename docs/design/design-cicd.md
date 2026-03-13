@@ -102,14 +102,54 @@ echo "${GMAIL_TOKEN_JSON}" > token.json
 
 需求規格中的排程時間以 **台灣時間 (UTC+8)** 定義，GitHub Actions Cron 使用 **UTC**：
 
-| Workflow     | Cron (UTC)    | 台灣時間 (UTC+8) | 說明     |
-| ------------ | ------------- | ---------------- | -------- |
-| `sync.yml`   | `0 4 * * *`   | 12:00            | 午間同步 |
-| `sync.yml`   | `0 15 * * *`  | 23:00            | 晚間同步 |
-| `sync.yml`   | `5 16 * * *`  | 00:05 (+1d)      | 午夜同步 |
-| `notify.yml` | `50 15 * * *` | 23:50            | 每日推播 |
+| Workflow     | Cron (UTC)    | 台灣時間 (UTC+8) | 說明                                                   |
+| ------------ | ------------- | ---------------- | ------------------------------------------------------ |
+| `sync.yml`   | `0 4 * * *`   | 12:00            | 午間同步                                               |
+| `sync.yml`   | `0 15 * * *`  | 23:00            | 晚間同步                                               |
+| `sync.yml`   | `5 16 * * *`  | 00:05 (+1d)      | 午夜同步                                               |
+| `notify.yml` | `30 15 * * *` | 23:30            | 每日推播（Cron 備援；主要由 GCP Cloud Scheduler 觸發） |
 
-> **GitHub Actions Cron 延遲**：GitHub 不保證 Cron 精確執行，可能延遲 5–15 分鐘。對本專案而言，此延遲可接受。
+> **GitHub Actions Cron 延遲**：GitHub 不保證 Cron 精確執行，高峰時段可能延遲 10–60 分鐘。為確保 Notify 準時推播，主要由 **GCP Cloud Scheduler** 外部觸發 `workflow_dispatch`，GitHub schedule cron 保留作為備援（見 §2.7）。
+
+### 2.7 外部排程觸發（GCP Cloud Scheduler）
+
+GitHub Actions 的 Cron 排程延遲不穩定（高峰時段可達 30–60 分鐘），為確保 Notify 準時推播，採用 **GCP Cloud Scheduler** 作為主要排程觸發器，透過 GitHub REST API 觸發 `workflow_dispatch` 事件。
+
+#### 架構
+
+```mermaid
+%%{init: {'theme':'dark'}}%%
+flowchart LR
+    GCP["GCP Cloud Scheduler<br/>(精確 Cron)"] -->|"POST workflow_dispatch<br/>Bearer Fine-grained PAT"| GH_API["GitHub REST API"]
+    GH_API -->|"觸發"| NOTIFY["notify.yml<br/>(workflow_dispatch)"]
+    BACKUP["GitHub schedule cron<br/>(備援)"] -.->|"延遲觸發"| NOTIFY
+```
+
+#### 觸發方式
+
+GCP Cloud Scheduler 定時對 GitHub REST API 發送 HTTP POST 請求：
+
+```
+URL:    https://api.github.com/repos/{OWNER}/{REPO}/actions/workflows/notify.yml/dispatches
+Method: POST
+Headers:
+  Authorization: Bearer {FINE_GRAINED_PAT}
+  Accept: application/vnd.github+json
+  X-GitHub-Api-Version: 2022-11-28
+Body:   {"ref":"main"}
+```
+
+#### Fine-grained PAT（最小權限）
+
+為降低憑證洩漏風險，使用 GitHub **Fine-grained Personal Access Token**，嚴格限制權限範圍：
+
+| 設定項                | 值                                     |
+| --------------------- | -------------------------------------- |
+| **Repository access** | `Only select repositories` → 僅本 repo |
+| **Permissions**       | `Actions: Read and write`（僅此一項）  |
+| **Expiration**        | 90 天，定期輪替                        |
+
+> PAT 存放於 GCP Cloud Scheduler 的 HTTP Header 中。若未來需更高安全性，可升級為 **Secret Manager + Cloud Functions 中繼** 架構（PAT 加密存於 Secret Manager，由 Cloud Function 讀取後轉發請求）。
 
 ### 2.5 DB commit-back 機制
 
@@ -303,7 +343,7 @@ flowchart TD
 ```yaml
 on:
   schedule:
-    - cron: '50 15 * * *'   # UTC 15:50 = TWN 23:50
+    - cron: '30 15 * * *'   # UTC 15:30 = TWN 23:30 (備援；主要由 GCP Cloud Scheduler 觸發)
   workflow_dispatch:
     inputs:
       date:
@@ -475,7 +515,13 @@ permissions:
 | ----------------------- | ----------------------------------------------------------------- |
 | `ci.yml` `paths-ignore` | `data/**` 與 `*.md` 變更不觸發 CI                                 |
 | commit 作者識別         | `github-actions[bot]` 的 commit 因 `paths-ignore` 規則而不觸發 CI |
-| sync.yml 不監聽 push    | `sync.yml` 僅有 `schedule` 與 `workflow_dispatch` 觸發            |
+| sync.yml 不監聯 push    | `sync.yml` 僅有 `schedule` 與 `workflow_dispatch` 觸發            |
+
+### 6.4 外部觸發與 PAT 安全
+
+- **Fine-grained PAT** 僅授予 `Actions: Read and write` 權限，且限定單一 repo，即使洩漏攻擊面極小
+- **PAT 有效期 90 天**，需定期輪替並更新 GCP Cloud Scheduler 中的 Header 值
+- **Gmail OAuth Production Mode**：OAuth consent screen 已切換至 Production Mode，refresh token 不再受 7 天過期限制，確保 CI 環境中 token 長期有效
 
 ---
 
