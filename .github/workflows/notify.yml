@@ -2,7 +2,7 @@ name: Notify
 
 on:
   schedule:
-    - cron: '50 15 * * *'   # UTC 15:50 = TWN 23:50
+    - cron: '30 15 * * *'   # UTC 15:50 = TWN 23:50
   workflow_dispatch:
     inputs:
       date:
