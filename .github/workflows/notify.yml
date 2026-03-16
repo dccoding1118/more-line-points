@@ -1,8 +1,6 @@
 name: Notify
 
 on:
-  schedule:
-    - cron: "30 15 * * *" # UTC 15:30 = TWN 23:30 (backup; primary via GCP Cloud Scheduler)
   workflow_dispatch:
     inputs:
       date:
