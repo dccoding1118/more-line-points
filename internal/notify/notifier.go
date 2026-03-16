@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -52,6 +53,16 @@ func (n *Notifier) Run(ctx context.Context, targetDate time.Time) error {
 	if err != nil {
 		return fmt.Errorf("failed to get activities: %w", err)
 	}
+
+	// Sort activities:
+	// 1. ChannelID ascending
+	// 2. CreatedAt descending
+	sort.SliceStable(activities, func(i, j int) bool {
+		if activities[i].ChannelID != activities[j].ChannelID {
+			return activities[i].ChannelID < activities[j].ChannelID
+		}
+		return activities[i].CreatedAt.After(activities[j].CreatedAt)
+	})
 
 	// 2. Fetch daily tasks and build map
 	tasks, err := n.taskStore.GetDailyTasksByDate(ctx, targetDate)
