@@ -21,6 +21,9 @@ func TestLoad(t *testing.T) {
 		{
 			name: "Valid YAML Config",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: data/test.db
 channel_mapping:
@@ -42,6 +45,9 @@ parser:
 		{
 			name: "YAML with unknown fields",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: data/test.db
 api:
@@ -62,13 +68,16 @@ unknown:
 		},
 		{
 			name:        "Invalid YAML format",
-			yamlContent: "database:\n  path: data/test.db\n\tinvalid_tab",
+			yamlContent: "taskpage:\n  output_path: \"data/tasks.json\"\n  github_pages_url: \"https://test.io\"\ndatabase:\n  path: data/test.db\n\tinvalid_tab",
 			expectErr:   true,
 			errContains: "failed to parse config",
 		},
 		{
 			name: "Missing required field",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: ""
 parser:
@@ -81,6 +90,9 @@ parser:
 		{
 			name: "Missing api base_url",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: db
 api:
@@ -99,6 +111,9 @@ parser:
 		{
 			name: "Missing api region",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: db
 api:
@@ -117,6 +132,9 @@ parser:
 		{
 			name: "Missing api headers origin",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: db
 api:
@@ -135,6 +153,9 @@ parser:
 		{
 			name: "Missing api headers referer",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: db
 api:
@@ -153,6 +174,9 @@ parser:
 		{
 			name: "Missing api headers user-agent",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: db
 api:
@@ -177,6 +201,9 @@ parser:
 		{
 			name: "Missing parser rules_path",
 			yamlContent: `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: db
 api:
@@ -225,6 +252,9 @@ api:
 
 	t.Run("Discord and Email config parsing", func(t *testing.T) {
 		content := `
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
 database:
   path: data/test.db
 api:

@@ -29,6 +29,7 @@ keywords, and sends daily task summaries via Discord and Email.
 | `docs/requirements/` | Requirements specification                                          |
 | `docs/design/`       | Detailed design documents (per development phase)                   |
 | `docs/guides/`       | Detailed guides for CI/CD and maintenance                           |
+| `docs/changes/`      | Changes history                                                     |
 | `logs/`              | Test reports, coverage output, execution logs                       |
 | `.local-dev/`        | Temporary development files (not committed)                         |
 

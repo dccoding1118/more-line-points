@@ -20,7 +20,11 @@ func TestInitCmd(t *testing.T) {
 
 	rulesPath := filepath.Join(tmpDir, "rules.yaml")
 
-	cfgData := fmt.Sprintf(`database:
+	tasksPath := filepath.Join(tmpDir, "tasks.json")
+	cfgData := fmt.Sprintf(`taskpage:
+  output_path: %s
+  github_pages_url: "https://test.io"
+database:
   path: %s
 channel_mapping:
   path: %s
@@ -33,7 +37,7 @@ api:
     user-agent: u
 parser:
   rules_path: %s
-`, dbPath, mapPath, rulesPath)
+`, tasksPath, dbPath, mapPath, rulesPath)
 
 	if err := os.WriteFile(cfgPath, []byte(cfgData), 0o600); err != nil {
 		t.Fatal(err)
@@ -139,7 +143,11 @@ func createBadFile(t *testing.T, dir, name, content string) string {
 func createCfgWithDbPathOnly(t *testing.T, dir, name, db, m, r string) string {
 	t.Helper()
 	p := filepath.Join(dir, name)
-	c := fmt.Sprintf(`database:
+	tasksPath := filepath.Join(dir, "tasks.json")
+	c := fmt.Sprintf(`taskpage:
+  output_path: %s
+  github_pages_url: "https://test.io"
+database:
   path: %s
 channel_mapping:
   path: %s
@@ -152,7 +160,7 @@ api:
     user-agent: u
 parser:
   rules_path: %s
-`, db, m, r)
+`, tasksPath, db, m, r)
 	if err := os.WriteFile(p, []byte(c), 0o600); err != nil {
 		t.Fatal(err)
 	}

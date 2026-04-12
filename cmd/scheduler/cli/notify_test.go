@@ -19,7 +19,11 @@ func TestNotifyCmd(t *testing.T) {
 	rulesPath := filepath.Join(tmpDir, "rules.yaml")
 	cfgPath := filepath.Join(tmpDir, "config.yaml")
 
-	cfgData := fmt.Sprintf(`database:
+	tasksPath := filepath.Join(tmpDir, "tasks.json")
+	cfgData := fmt.Sprintf(`taskpage:
+  output_path: %s
+  github_pages_url: "https://test.io"
+database:
   path: %s
 channel_mapping:
   path: %s
@@ -36,7 +40,7 @@ discord:
   enabled: false
 email:
   enabled: false
-`, dbPath, mapPath, rulesPath)
+`, tasksPath, dbPath, mapPath, rulesPath)
 
 	if err := os.WriteFile(cfgPath, []byte(cfgData), 0o600); err != nil {
 		t.Fatal(err)

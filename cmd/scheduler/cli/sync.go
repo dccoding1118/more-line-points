@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/dccoding1118/more-line-points/internal/apiclient"
 	"github.com/dccoding1118/more-line-points/internal/config"
 	"github.com/dccoding1118/more-line-points/internal/htmlparser"
 	"github.com/dccoding1118/more-line-points/internal/storage"
 	"github.com/dccoding1118/more-line-points/internal/syncer"
+	"github.com/dccoding1118/more-line-points/internal/taskpage"
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +67,11 @@ func runSync(ctx context.Context, opts *syncOptions) error {
 	hasChange, err := s.Sync(ctx)
 	if err != nil {
 		return fmt.Errorf("sync failed: %w", err)
+	}
+
+	exporter := taskpage.NewJSONExporter(store, store)
+	if err := exporter.Export(ctx, time.Now(), cfg.TaskPage.OutputPath); err != nil {
+		return fmt.Errorf("failed to export tasks.json: %w", err)
 	}
 
 	if hasChange {

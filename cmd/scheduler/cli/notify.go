@@ -58,11 +58,6 @@ func runNotify(ctx context.Context, opts *notifyOptions) error {
 		return err
 	}
 
-	cm, err := config.LoadChannelMapping(cfg.ChannelMapping.Path)
-	if err != nil {
-		return err
-	}
-
 	store, err := storage.NewSQLiteStore(ctx, cfg.Database.Path)
 	if err != nil {
 		return err
@@ -88,7 +83,7 @@ func runNotify(ctx context.Context, opts *notifyOptions) error {
 		)
 	}
 
-	n := notify.NewNotifier(store, store, dcSender, emailSender, cm)
+	n := notify.NewNotifier(store, dcSender, emailSender, cfg.TaskPage.GithubPagesURL)
 	if err := n.Run(ctx, targetDate); err != nil {
 		return fmt.Errorf("notify failed: %w", err)
 	}

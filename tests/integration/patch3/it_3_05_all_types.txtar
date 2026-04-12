@@ -7,16 +7,7 @@ db-insert $ROOT_DIR/tests/fixture/db/seed_all_8_types.sql
 exec scheduler notify --config $ROOT_DIR/tests/fixture/config/config.yaml --date 2026-03-05
 
 stderr 'Target Date: 2026-03-05'
-stderr 'Activities Found: 8'
-stderr 'Notification sent'
+stderr 'Tasks Found: 2'
 
-mock-discord contains '🔑'
-mock-discord contains '🛍️'
-mock-discord contains '🎁'
-mock-discord contains '🗳️'
-mock-discord contains '📱'
-mock-discord contains '📗'
-mock-discord contains '🔗'
-mock-discord contains '📌'
-
-
+mock-discord contains '任務清單已更新'
+mock-discord contains '共有 2 項任務'

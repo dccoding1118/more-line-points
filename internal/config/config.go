@@ -14,6 +14,7 @@ import (
 // Patch 0 僅包含 database 與 channel_mapping 區塊。
 type Config struct {
 	Database       DatabaseConfig       `yaml:"database"`
+	TaskPage       TaskPageConfig       `yaml:"taskpage"`
 	ChannelMapping ChannelMappingConfig `yaml:"channel_mapping"`
 	API            APIConfig            `yaml:"api"`
 	Parser         ParserConfig         `yaml:"parser"` // Added for Patch 3 (L3)
@@ -42,6 +43,11 @@ type EmailConfig struct {
 
 type DatabaseConfig struct {
 	Path string `yaml:"path"` // SQLite 檔案路徑，必填
+}
+
+type TaskPageConfig struct {
+	OutputPath     string `yaml:"output_path"`      // tasks.json 輸出路徑
+	GithubPagesURL string `yaml:"github_pages_url"` // 推播顯示用之前端任務網頁網址
 }
 
 type ChannelMappingConfig struct {
@@ -122,6 +128,12 @@ func Load(path string) (*Config, error) {
 func (c *Config) Validate() error {
 	if c.Database.Path == "" {
 		return errors.New("config validation: database.path is required")
+	}
+	if c.TaskPage.OutputPath == "" {
+		return errors.New("config validation: taskpage.output_path is required")
+	}
+	if c.TaskPage.GithubPagesURL == "" {
+		return errors.New("config validation: taskpage.github_pages_url is required")
 	}
 	if c.API.BaseURL == "" {
 		return errors.New("config validation: api.base_url is required")
