@@ -35,7 +35,10 @@ func TestSyncCmd(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 	rulesPath := filepath.Join(tmpDir, "rules.yaml")
 
-	cfgData := fmt.Sprintf(`database:
+	cfgData := fmt.Sprintf(`taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
+database:
   path: %s
 channel_mapping:
   path: %s

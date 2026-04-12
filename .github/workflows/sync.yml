@@ -28,9 +28,14 @@ jobs:
 
       - name: Commit and push DB changes
         run: |
-          git diff --quiet data/line_tasks.db && exit 0
+          git diff --quiet data/line_tasks.db data/tasks.json && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/line_tasks.db
-          git commit -m "chore(data): auto-sync line_tasks.db"
+          git add data/line_tasks.db data/tasks.json
+          git commit -m "chore(data): auto-sync line_tasks.db and tasks.json"
           git push
+
+  notify:
+    needs: sync
+    uses: ./.github/workflows/notify.yml
+    secrets: inherit

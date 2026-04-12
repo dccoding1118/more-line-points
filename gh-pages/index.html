@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LINE 任務列表</title>
+    <style>
+      :root {
+        --bg-color: #f5f5f7;
+        --card-bg: #ffffff;
+        --text-main: #1d1d1f;
+        --text-secondary: #86868b;
+        --accent: #00c300;
+        --accent-hover: #00b300;
+        --border: #e5e5ea;
+        --new-badge: #ff3b30;
+        --day-badge: #007aff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-color: #000000;
+          --card-bg: #1c1c1e;
+          --text-main: #f5f5f7;
+          --text-secondary: #98989d;
+          --border: #38383a;
+        }
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        text-align: center;
+        border: 1px solid var(--border);
+      }
+      .header-card h1 {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+      }
+      .header-card p {
+        margin: 0;
+        color: var(--text-secondary);
+      }
+      .category-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 24px 0 12px 12px;
+        color: var(--text-secondary);
+      }
+      .task-list {
+        background: var(--card-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        border: 1px solid var(--border);
+      }
+      .task-item {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        transition: opacity 0.3s;
+      }
+      .task-item:last-child {
+        border-bottom: none;
+      }
+      .task-item.done {
+        opacity: 0.5;
+      }
+      .task-badge {
+        font-size: 11px;
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 8px;
+        margin-right: 12px;
+        color: white;
+        min-width: 32px;
+        text-align: center;
+      }
+      .task-badge.new {
+        background-color: var(--new-badge);
+      }
+      .task-badge.day {
+        background-color: var(--day-badge);
+      }
+      .task-content {
+        flex: 1;
+      }
+      .task-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+        font-size: 15px;
+      }
+      .task-desc {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .task-btn {
+        background-color: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.2s;
+      }
+      .task-btn:hover {
+        background-color: var(--accent-hover);
+      }
+      .task-item.done .task-btn {
+        background-color: var(--border);
+        color: var(--text-secondary);
+        pointer-events: none;
+      }
+      .task-icon {
+        font-size: 20px;
+        margin-right: 12px;
+        display: none;
+      }
+      .task-item.done .task-icon {
+        display: inline-block;
+        color: var(--accent);
+      }
+      .task-item.done .task-badge {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header-card">
+        <h1>📅 LINE 任務列表</h1>
+        <p id="summary">載入中...</p>
+      </div>
+      <div id="content"></div>
+    </div>
+
+    <script>
+      const OWNER = "dccoding1118";
+      const REPO = "more-line-points";
+      const RAW_URL = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/data/tasks.json`;
+
+      const CATEGORY_ICONS = {
+        keyword: "🔑 關鍵字任務",
+        "shop-collect": "🛍️ 收藏店家",
+        "lucky-draw": "🎁 試手氣",
+        poll: "🗳️ 投票任務",
+        "app-checkin": "📱 App 簽到",
+        passport: "📗 購物護照",
+        share: "🔗 分享任務",
+        other: "📌 其他任務",
+      };
+
+      const TARGET_ORDER = [
+        "keyword",
+        "shop-collect",
+        "lucky-draw",
+        "poll",
+        "app-checkin",
+        "passport",
+        "share",
+        "other",
+      ];
+
+      let pageDate = "";
+      let clickedIds = [];
+      let allTasks = [];
+
+      async function init() {
+        try {
+          const url = `${RAW_URL}?t=${new Date().getTime()}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const data = await res.json();
+
+          pageDate = data.date;
+          allTasks = data.tasks || [];
+
+          loadClickedState();
+          render();
+        } catch (err) {
+          document.getElementById("summary").textContent =
+            "資料載入失敗，請稍後再試。";
+          console.error("Fetch error:", err);
+        }
+      }
+
+      function loadClickedState() {
+        const storageKey = `clicked_${pageDate}`;
+
+        // Garbage collection
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith("clicked_") && key !== storageKey) {
+            localStorage.removeItem(key);
+          }
+        }
+
+        const stored = localStorage.getItem(storageKey);
+        clickedIds = stored ? JSON.parse(stored) : [];
+      }
+
+      function toggleTask(id, url) {
+        if (!clickedIds.includes(id)) {
+          clickedIds.push(id);
+          localStorage.setItem(
+            `clicked_${pageDate}`,
+            JSON.stringify(clickedIds),
+          );
+          renderSummary(); // update progress bar
+
+          const el = document.getElementById(`task-${id}`);
+          if (el) el.classList.add("done");
+
+          const btn = document.getElementById(`btn-${id}`);
+          if (btn) btn.textContent = "已完成";
+        }
+        if (url) {
+          window.open(url, "_blank");
+        }
+      }
+
+      function renderSummary() {
+        const total = allTasks.length;
+        const done = allTasks.filter((t) => clickedIds.includes(t.id)).length;
+        document.getElementById("summary").textContent =
+          `更新日期: ${pageDate} · 進度 ${done} / ${total}`;
+      }
+
+      function render() {
+        renderSummary();
+        const content = document.getElementById("content");
+        content.innerHTML = "";
+
+        // Group tasks by category
+        const groups = {};
+        allTasks.forEach((task) => {
+          if (!TARGET_ORDER.includes(task.type)) task.type = "other";
+          if (!groups[task.type]) groups[task.type] = [];
+          groups[task.type].push(task);
+        });
+
+        TARGET_ORDER.forEach((type) => {
+          const groupTasks = groups[type];
+          if (!groupTasks || groupTasks.length === 0) return;
+
+          const titleEl = document.createElement("div");
+          titleEl.className = "category-title";
+          titleEl.textContent = CATEGORY_ICONS[type] || CATEGORY_ICONS["other"];
+          content.appendChild(titleEl);
+
+          const listEl = document.createElement("div");
+          listEl.className = "task-list";
+
+          groupTasks.forEach((task) => {
+            const isDone = clickedIds.includes(task.id);
+            const itemEl = document.createElement("div");
+            itemEl.className = `task-item ${isDone ? "done" : ""}`;
+            itemEl.id = `task-${task.id}`;
+
+            let badgeHtml = "";
+            if (task.day === 0) {
+              badgeHtml = `<div class="task-badge new">NEW</div>`;
+            } else {
+              badgeHtml = `<div class="task-badge day">DAY${task.day + 1}</div>`;
+            }
+
+            let descText = task.channel_name || "";
+            if (task.keyword) {
+              descText += ` - ${task.keyword}`;
+            }
+
+            const targetUrl = task.deep_link || task.page_url || "#";
+
+            itemEl.innerHTML = `
+            <div class="task-icon">✅</div>
+            ${badgeHtml}
+            <div class="task-content">
+              <div class="task-title">${task.title}</div>
+              <div class="task-desc">${descText}</div>
+            </div>
+            <button id="btn-${task.id}" class="task-btn" onclick="toggleTask('${task.id}', '${targetUrl}')">
+              ${isDone ? "已完成" : "前往 ➔"}
+            </button>
+          `;
+            listEl.appendChild(itemEl);
+          });
+
+          content.appendChild(listEl);
+        });
+
+        if (allTasks.length === 0) {
+          content.innerHTML =
+            '<div style="text-align:center;color:var(--text-secondary);padding:40px;">今日沒有任何任務</div>';
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -20,7 +20,10 @@ func TestInitCmd(t *testing.T) {
 
 	rulesPath := filepath.Join(tmpDir, "rules.yaml")
 
-	cfgData := fmt.Sprintf(`database:
+	cfgData := fmt.Sprintf(`taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
+database:
   path: %s
 channel_mapping:
   path: %s
@@ -139,7 +142,10 @@ func createBadFile(t *testing.T, dir, name, content string) string {
 func createCfgWithDbPathOnly(t *testing.T, dir, name, db, m, r string) string {
 	t.Helper()
 	p := filepath.Join(dir, name)
-	c := fmt.Sprintf(`database:
+	c := fmt.Sprintf(`taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
+database:
   path: %s
 channel_mapping:
   path: %s

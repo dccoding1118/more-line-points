@@ -7,8 +7,6 @@ db-insert $ROOT_DIR/tests/fixture/db/seed_tomorrow_tasks.sql
 exec scheduler notify --config $ROOT_DIR/tests/fixture/config/config.yaml --date 2026-03-05
 
 stderr 'Target Date: 2026-03-05'
-stderr 'Activities Found: 1'
-stderr 'Notification sent'
+stderr 'Tasks Found: 1'
 
-mock-discord contains 'https://line.me/R/oaMessage/'
-mock-discord contains 'SHOP0305'
+mock-discord contains '任務清單已更新'

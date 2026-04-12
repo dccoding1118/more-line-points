@@ -4,13 +4,18 @@ database:
 channel_mapping:
   path: "config/channel_mapping.yaml"
 
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://dccoding1118.github.io/more-line-points/"
+
 api:
   base_url: "https://ec-bot-web.line-apps.com/event-wall/home"
   region: "tw"
   headers:
     origin: "https://event.line.me"
     referer: "https://event.line.me/bulletin/tw"
-    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+      (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
 parser:
   rules_path: config/parse_rules.yaml

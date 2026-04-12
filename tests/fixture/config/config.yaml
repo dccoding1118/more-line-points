@@ -2,6 +2,9 @@ database:
   path: data/test.db
 channel_mapping:
   path: $ROOT_DIR/tests/fixture/config/channel_mapping.yaml
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://dccoding1118.github.io/more-line-points/"
 parser:
   rules_path: $ROOT_DIR/tests/fixture/config/parse_rules.yaml
 api:

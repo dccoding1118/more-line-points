@@ -19,7 +19,10 @@ func TestNotifyCmd(t *testing.T) {
 	rulesPath := filepath.Join(tmpDir, "rules.yaml")
 	cfgPath := filepath.Join(tmpDir, "config.yaml")
 
-	cfgData := fmt.Sprintf(`database:
+	cfgData := fmt.Sprintf(`taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://test.io"
+database:
   path: %s
 channel_mapping:
   path: %s
