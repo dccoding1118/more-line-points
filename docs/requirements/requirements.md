@@ -1,6 +1,6 @@
 # LINE 活動集點任務爬蟲與推播系統 — 需求規格文件
 
-> **版本**: v1.2
+> **版本**: v1.3
 > **最後更新**: 2026-04-12
 
 ---
@@ -19,9 +19,10 @@ LINE 平台在台灣定期舉辦各種集點、關鍵字回饋、分享抽獎等
 
 1. **自動同步活動資料**：定時從 LINE event-wall JSON API 擷取活動清單，並解析活動詳細頁 HTML 取得關鍵字排程。
 2. **三層 Hash 差異偵測**：透過分層雜湊比對機制，最小化不必要的重複抓取與解析。
-3. **多管道推播通知**：將明日任務清單（含 LINE deep link）同時透過 Discord 與 Email (Gmail API) 推播。
+3. **多管道推播通知**：當任務更新時，同時透過 Discord 與 Email 推播「網頁首頁網址」，避免長篇雜亂清單，維持通知乾淨。
 4. **Discord Bot 指令介面**：提供互動式查詢與手動觸發功能（指定 Admin 頻道）。
-5. **GCP Cloud Scheduler + GitHub Actions 自動化**：由 GCP Cloud Scheduler 定時透過 GitHub REST API 觸發 `workflow_dispatch`，執行 Sync 與 Notify 流程，DB 檔案自動 commit-back 持久化。
+5. **GCP Cloud Scheduler + GitHub Actions 自動化**：由 GCP Cloud Scheduler 定時觸發 Sync，結束後自動部署資料並直接連動 Notify 流程，達成零人工介入。
+6. **靜態任務網頁首頁**：產生具有響應式設計的靜態 Web UI，掛載在 GitHub Pages 上讀取 GitHub 第一手 JSON，並於此集中管理與追蹤點擊完成進度。
 
 ### 關鍵設計決策
 
@@ -42,8 +43,10 @@ LINE 平台在台灣定期舉辦各種集點、關鍵字回饋、分享抽獎等
 | HTML 解析       | `goquery` 或等效                     | 解析活動詳細頁 HTML                          |
 | 資料庫          | SQLite                               | 使用 `modernc.org/sqlite`（純 Go、免 CGO）   |
 | 設定檔          | YAML                                 | `config.yaml` + `channel_mapping.yaml`       |
-| 通知推播        | Discord Bot API (`discordgo`)        | `ChannelMessageSend` 等，支援 Markdown 格式  |
-| 通知推播        | Email (Gmail API)                    | `google.golang.org/api/gmail/v1` (OAuth2)    |
+| 通知推播        | Discord Bot API (`discordgo`)        | `ChannelMessageSend` 傳送更新提醒網址        |
+| 通知推播        | Email (Gmail API)                    | 發送更新提醒網址                             |
+| 任務網頁前端    | 原生 HTML/JS/CSS                     | 響應式、以 localStorage 紀錄進度             |
+| 任務網頁託管    | GitHub Pages                         | 原生靜態網站支援                             |
 | 排程自動化      | GCP Cloud Scheduler + GitHub Actions | Cloud Scheduler 定時觸發 `workflow_dispatch` |
 | Bot 部署        | Render free tier / 本機              | WebSocket Gateway (常駐模式)                 |
 | AI 強化（選配） | OpenAI / Ollama                      | 詳細頁關鍵字抽取的 LLM fallback              |
@@ -65,13 +68,20 @@ graph TB
 
     subgraph Scheduler["GCP Cloud Scheduler"]
         CLOUD_SYNC["Sync 排程<br/>00:00:05"]
-        CLOUD_NOTIFY["Notify 排程<br/>00:02:00"]
     end
 
     subgraph GHA["GitHub Actions"]
         GH_API["GitHub REST API<br/>workflow_dispatch"]
-        SYNC_WF["sync.yml"]
-        NOTIFY_WF["notify.yml"]
+        SYNC_WF["sync.yml<br/>(含 JSON 產出與 commit-back)"]
+        NOTIFY_WF["notify.yml<br/>(由 sync 觸發)"]
+        DEPLOY_WF["deploy.yml<br/>(僅前端 UI 更新觸發)"]
+    end
+
+    subgraph GithubEnv["GitHub 基礎設施"]
+        DB["data/line_tasks.db"]
+        TASK_JSON["data/tasks.json"]
+        PAGE_RAW["raw.githubusercontent.com<br/>(API 讀點)"]
+        PAGE_WEB["GitHub Pages UI<br/>(gh-pages/index.html)"]
     end
 
     subgraph App["Go 應用程式"]
@@ -81,31 +91,36 @@ graph TB
         subgraph Core["核心模組"]
             API_CLIENT["apiclient<br/>API 呼叫 · 分頁遍歷"]
             HTML_PARSER["htmlparser<br/>HTML 解析 · LLM fallback"]
-            STORAGE["storage<br/>SQLite CRUD · Hash 管理"]
-            NOTIFY["notify<br/>訊息組裝"]
+            STORAGE["storage<br/>SQLite CRUD"]
+            NOTIFY["notify<br/>送出 URL 與總數"]
             DISCORD["discord<br/>sendMessage · WebSocket"]
             EMAIL["email<br/>Gmail API 發送"]
             BOT["bot<br/>指令路由 · handler"]
-            MODEL["model<br/>共用結構定義"]
+            TASKPAGE["taskpage<br/>組裝並輸出 JSON"]
         end
     end
 
-    subgraph Config["設定與資料"]
+    subgraph Config["設定環境"]
         CONFIG_FILE["config/config.yaml"]
         CHANNEL_MAP["config/channel_mapping.yaml"]
-        DB["data/line_tasks.db<br/>(SQLite)"]
     end
 
-    CLOUD_SYNC -->|"POST workflow_dispatch<br/>Bearer Fine-grained PAT"| GH_API
-    CLOUD_NOTIFY -->|"POST workflow_dispatch<br/>Bearer Fine-grained PAT"| GH_API
+    CLOUD_SYNC -->|"POST workflow_dispatch<br/>Bearer PAT"| GH_API
     GH_API --> SYNC_WF
-    GH_API --> NOTIFY_WF
+    SYNC_WF -->|"workflow_call"| NOTIFY_WF
     SYNC_WF --> CMD_SCH
     NOTIFY_WF --> CMD_SCH
+    deploy_event --> DEPLOY_WF
+    DEPLOY_WF --> PAGE_WEB
+
     CMD_SCH --> API_CLIENT
+    CMD_SCH --> TASKPAGE
     CMD_SCH --> NOTIFY
     CMD_BOT --> BOT
     BOT --> DISCORD
+    TASKPAGE -->|"覆寫輸出"| TASK_JSON
+    TASK_JSON --> PAGE_RAW
+    PAGE_WEB -->|"Fetch?t=now"| PAGE_RAW
 
     API_CLIENT -->|"GET JSON"| LINE_API
     HTML_PARSER -->|"GET HTML"| LINE_PAGE
@@ -187,7 +202,7 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 ### 5.3 推播通知模組（Notify）— `notify` + `discord` + `email`
 
 **功能說明**：
-查詢明日的任務清單，依任務類型與頻道分組，組裝格式化訊息後透過 **Discord Bot API** 與 **Email（Gmail API）** 雙管道同時推播。每個管道各自擁有 `enabled` 開關，可獨立啟用或停用。
+在 Sync 流程完成後發動，統計當日的任務更新數量，並組裝一句包含「GitHub Pages 首頁 URL」的通知訊息，透過 **Discord Bot API** 與 **Email（Gmail API）** 雙管道同時簡短推播。不再派發繁雜的全文任務連結清單。每個管道各自擁有 `enabled` 開關，可獨立啟用或停用。
 
 **輸入**：
 | 項目             | 來源                   | 說明                                             |
@@ -271,7 +286,7 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 | `/sync`            | 手動觸發完整 Sync      | 同步結果摘要（新增/更新/無變化）    |
 | `/list`            | 列出所有有效活動       | 活動清單（類型、頻道、有效期）      |
 | `/keywords {mmdd}` | 查詢指定日期關鍵字清單 | 關鍵字列表（省略日期則為明日）      |
-| `/notify`          | 手動觸發推播           | 內容同自動推播                      |
+| `/notify`          | 手動觸發推播           | 重新發送當日網頁 URL 通知           |
 | `/status`          | 系統狀態查詢           | 上次 Sync 時間、Hash 狀態、活動筆數 |
 
 **部署方案**：Bot WebSocket Gateway 常駐於 Render free tier 或本機背景執行。
@@ -281,30 +296,37 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 ### 5.6 GitHub Actions 自動化模組
 
 **功能說明**：
-透過 **GCP Cloud Scheduler** 定時呼叫 GitHub REST API 觸發 `workflow_dispatch` 事件，自動執行 Sync 與 Notify 流程。Sync 完成後若 DB 有變更，自動 commit-back 至 repo。GitHub Actions 不再使用 Cron 排程，僅保留 `workflow_dispatch` 作為觸發方式。
+透過 **GCP Cloud Scheduler** 定時呼叫 GitHub REST API 觸發 Sync Workflow，自動執行 Sync 流程產出 DB 與 JSON 檔案。完成後若資料有變更，自動 commit-back 至 repo，並利用 GitHub Actions `workflow_call` 的機制同步發起 Notify 流程傳送通知。此外新增 Deploy Workflow 處裡 GitHub Pages 的前端部署更新。
 
 #### 排程觸發機制
 
-所有排程由 **GCP Cloud Scheduler** 統一管理，透過 GitHub REST API 觸發對應 Workflow 的 `workflow_dispatch` 事件，使用 **Fine-grained PAT** 認證（僅 `Actions: Read and write`、限定單一 repo）。
+所有排程由 **GCP Cloud Scheduler** 統一管理，透過 GitHub REST API 觸發對應 Workflow 的 `workflow_dispatch` 事件，以 **Fine-grained PAT** 認證。
 
-| Cloud Scheduler 排程 (TWN) | 觸發 Workflow | 用途         |
-| -------------------------- | ------------- | ------------ |
-| 00:00:05                   | `sync.yml`    | 每日活動同步 |
-| 00:02:00                   | `notify.yml`  | 每日任務推播 |
+| Cloud Scheduler 排程 (TWN) | 觸發 Workflow | 用途                   |
+| -------------------------- | ------------- | ---------------------- |
+| 00:00:05                   | `sync.yml`    | 每日活動同步與網頁發佈 |
 
 #### `sync.yml`
 | 觸發方式            | 說明                                    |
 | ------------------- | --------------------------------------- |
 | `workflow_dispatch` | GCP Cloud Scheduler 外部觸發 / 手動觸發 |
 
-**流程**：checkout → `go run ./cmd/scheduler sync` → commit & push `data/line_tasks.db`（若有變更）
+**流程**：checkout → `go run ./cmd/scheduler sync` → `taskpage` 導出 `tasks.json` → commit & push → 若有資料變更，呼叫 `notify.yml`
 
 #### `notify.yml`
-| 觸發方式            | 說明                                    |
-| ------------------- | --------------------------------------- |
-| `workflow_dispatch` | GCP Cloud Scheduler 外部觸發 / 手動觸發 |
+| 觸發方式            | 說明                         |
+| ------------------- | ---------------------------- |
+| `workflow_dispatch` | 手動觸發                     |
+| `workflow_call`     | 被 `sync.yml` 成功後自動呼叫 |
 
 **流程**：checkout → `go run ./cmd/scheduler notify`
+
+#### `deploy.yml`
+| 觸發方式 | 說明                                    |
+| -------- | --------------------------------------- |
+| `push`   | 當 `gh-pages/index.html` 異動時自動觸發 |
+
+**流程**：checkout → 封裝 `gh-pages` → 部署至 GitHub Pages
 
 **GitHub Secrets 需求**：
 - `DISCORD_BOT_TOKEN`：Discord Bot/App Token
@@ -441,25 +463,27 @@ flowchart TD
 flowchart TD
     subgraph scheduler["GCP Cloud Scheduler"]
         CS_SYNC["Sync 排程<br/>(00:00:05)"]
-        CS_NOTIFY["Notify 排程<br/>(00:02:00)"]
     end
 
     CS_SYNC -->|"POST workflow_dispatch<br/>Bearer PAT"| GH_API_S["GitHub REST API"]
-    CS_NOTIFY -->|"POST workflow_dispatch<br/>Bearer PAT"| GH_API_N["GitHub REST API"]
 
     subgraph sync_flow["sync.yml"]
         GH_API_S --> S2["Checkout repo<br/>(含 data/line_tasks.db)"]
         S2 --> S3["go run ./cmd/scheduler sync"]
-        S3 --> S4{"DB 有變更?"}
-        S4 -->|"有"| S5["git commit & push<br/>data/line_tasks.db"]
+        S3 --> S4{"DB 或 JSON 有變更?"}
+        S4 -->|"有"| S5["git commit & push<br/>data & gh-pages"]
         S4 -->|"無"| S6["結束"]
+        S5 -->|"workflow_call"| notify_flow
         S5 --> S6
     end
 
     subgraph notify_flow["notify.yml"]
-        GH_API_N --> N2["Checkout repo"]
-        N2 --> N3["go run ./cmd/scheduler notify"]
-        N3 --> N4["Discord/Email 推播完成"]
+        N3["go run ./cmd/scheduler notify"]
+        N3 --> N4["Discord/Email 發佈任務首頁網址"]
+    end
+
+    subgraph deploy_flow["deploy.yml"]
+        D1["Push to index.html<br/>或 repository_dispatch"] --> D2["Deploy to Pages"]
     end
 ```
 
@@ -551,16 +575,21 @@ CREATE TABLE sync_state (
 │   ├── discord/            # Discord API 封裝（sendMessage + WebSocket）
 │   ├── email/              # Email Gmail API 封裝（OAuth2）
 │   ├── bot/                # Bot 指令路由與 handler
+│   ├── taskpage/           # task.json 組裝與靜態網頁支援
 │   └── model/              # 共用資料結構定義
 ├── config/
 │   ├── config.yaml         # 應用程式設定（Telegram token、DB 路徑等）
 │   └── channel_mapping.yaml # channelName → @channel_id 對應表
 ├── data/
 │   └── line_tasks.db       # SQLite 資料庫（納入 Git 版控）
+├── gh-pages/
+│   ├── index.html          # GitHub Pages 任務網頁殼
+│   └── tasks.json          # 自動同步產生之給前端存取的每日任務
 ├── .github/
 │   └── workflows/
 │       ├── sync.yml        # Sync 排程
-│       └── notify.yml      # Notify 排程
+│       ├── notify.yml      # Notify 排程
+│       └── deploy.yml      # GitHub Pages Deploy 排程
 ├── docs/
 │   └── requirements/
 │       └── requirements.md # 本文件
@@ -591,6 +620,10 @@ email:
 
 database:
   path: "data/line_tasks.db"
+
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://dccoding1118.github.io/more-line-points/"
 
 channel_mapping:
   path: "config/channel_mapping.yaml"
@@ -658,7 +691,7 @@ on_missing: warn   # warn | skip | error
 ### 10.6 可部署性
 
 - **純 Go 編譯**：使用 `modernc.org/sqlite` 免 CGO，支援跨平台編譯。
-- **GitHub Actions 自動化**：由 GCP Cloud Scheduler 統一排程觸發 `workflow_dispatch`，搭配 GitHub Actions 執行 Sync/Notify 與 DB 持久化，零人工介入。
+- **GitHub Actions 自動化**：由 GCP Cloud Scheduler 統一排程觸發 `workflow_dispatch` 驅動 `sync.yml`，結束後以 `workflow_call` 發動 `notify.yml` 推送通知，同時 GitHub Pages 讀取 repo JSON 極速生效，全自動且解耦。
 - **Bot 部署靈活性**：支援 Render free tier 雲端常駐或本機背景執行。
 
 ### 10.7 可擴充性
@@ -673,12 +706,13 @@ on_missing: warn   # warn | skip | error
 
 > 採用洋蔥式開發策略：每個 Patch 結束都有**可執行、可驗證的成品**。由內而外，核心先行。
 
-| Patch | 名稱                  | 目標                                  | 驗證標準                                                 |
-| ----- | --------------------- | ------------------------------------- | -------------------------------------------------------- |
-| 0     | 專案骨架與基礎設施    | `go run .` 能跑、config 可讀、DB 可開 | `data/line_tasks.db` 存在，schema 正確，log 顯示啟動成功 |
-| 1     | 清單 Sync (L1+L2)     | 從 API 抓活動清單並寫入 DB            | `activities` 表有資料；二次執行顯示「無變化，跳過」      |
-| 2     | 詳細頁解析 (L3)       | 解析 HTML 取得任務類型與關鍵字        | `activities.type` 正確分類，`daily_tasks` 表有逐日資料   |
-| 3     | 推播通知              | 發送明日任務清單到 Discord + Email    | Discord 與 Email 收到格式正確訊息，deep link 可開啟 LINE |
-| 4     | GitHub Actions 自動化 | Sync 與 Notify 全自動                 | Actions 執行成功，DB commit 出現，Discord 自動推播       |
-| 5     | Bot 指令介面          | Discord 訊息觸發操作                  | `/status` 回應正確狀態資訊                               |
-| 6     | AI 強化（選配）       | LLM fallback 提升容錯率               | 模擬規則解析失敗，LLM 正確補齊關鍵字                     |
+| Patch | 名稱                  | 目標                                           | 驗證標準                                                 |
+| ----- | --------------------- | ---------------------------------------------- | -------------------------------------------------------- |
+| 0     | 專案骨架與基礎設施    | `go run .` 能跑、config 可讀、DB 可開          | `data/line_tasks.db` 存在，schema 正確，log 顯示啟動成功 |
+| 1     | 清單 Sync (L1+L2)     | 從 API 抓活動清單並寫入 DB                     | `activities` 表有資料；二次執行顯示「無變化，跳過」      |
+| 2     | 詳細頁解析 (L3)       | 解析 HTML 取得任務類型與關鍵字                 | `activities.type` 正確分類，`daily_tasks` 表有逐日資料   |
+| 3     | 推播通知              | 發送任務狀態與網頁 URL 到 Discord + Email      | Discord 與 Email 收到格式正確訊息，網址可連結            |
+| 4     | GitHub Actions 自動化 | Sync 與 Notify 全自動                          | Actions 執行成功，DB 提交出現，完成後連動觸發通知流程    |
+| 4.5   | GitHub Pages 網頁     | 建立任務端靜態網頁管理與 `tasks.json` 產出機制 | Github Pages 版面可檢視 JSON 與更新 LocalStorage         |
+| 5     | Bot 指令介面          | Discord 訊息觸發操作                           | `/status` 回應正確狀態資訊                               |
+| 6     | AI 強化（選配）       | LLM fallback 提升容錯率                        | 模擬規則解析失敗，LLM 正確補齊關鍵字                     |
