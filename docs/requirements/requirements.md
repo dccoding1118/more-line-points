@@ -1,7 +1,7 @@
 # LINE 活動集點任務爬蟲與推播系統 — 需求規格文件
 
-> **版本**: v1.1
-> **最後更新**: 2026-03-03
+> **版本**: v1.2
+> **最後更新**: 2026-04-12
 
 ---
 
@@ -21,7 +21,7 @@ LINE 平台在台灣定期舉辦各種集點、關鍵字回饋、分享抽獎等
 2. **三層 Hash 差異偵測**：透過分層雜湊比對機制，最小化不必要的重複抓取與解析。
 3. **多管道推播通知**：將明日任務清單（含 LINE deep link）同時透過 Discord 與 Email (Gmail API) 推播。
 4. **Discord Bot 指令介面**：提供互動式查詢與手動觸發功能（指定 Admin 頻道）。
-5. **GitHub Actions 自動化**：排程觸發 Sync 與 Notify 流程，DB 檔案自動 commit-back 持久化。
+5. **GCP Cloud Scheduler + GitHub Actions 自動化**：由 GCP Cloud Scheduler 定時透過 GitHub REST API 觸發 `workflow_dispatch`，執行 Sync 與 Notify 流程，DB 檔案自動 commit-back 持久化。
 
 ### 關鍵設計決策
 
@@ -34,20 +34,20 @@ LINE 平台在台灣定期舉辦各種集點、關鍵字回饋、分享抽獎等
 
 ## 三、技術棧
 
-| 類別            | 技術選型                      | 說明                                        |
-| --------------- | ----------------------------- | ------------------------------------------- |
-| 程式語言        | Go (Golang)                   | 遵循 `golang-standards/project-layout` 標準 |
-| CLI 框架        | `cobra`                       | 子命令架構（init / sync / notify）          |
-| HTTP 客戶端     | `net/http`                    | 呼叫 LINE API 與 Discord API                |
-| HTML 解析       | `goquery` 或等效              | 解析活動詳細頁 HTML                         |
-| 資料庫          | SQLite                        | 使用 `modernc.org/sqlite`（純 Go、免 CGO）  |
-| 設定檔          | YAML                          | `config.yaml` + `channel_mapping.yaml`      |
-| 通知推播        | Discord Bot API (`discordgo`) | `ChannelMessageSend` 等，支援 Markdown 格式 |
-| 通知推播        | Email (Gmail API)             | `google.golang.org/api/gmail/v1` (OAuth2)   |
-| 排程自動化      | GitHub Actions                | Cron 排程觸發 sync / notify                 |
-| Bot 部署        | Render free tier / 本機       | WebSocket Gateway (常駐模式)                |
-| AI 強化（選配） | OpenAI / Ollama               | 詳細頁關鍵字抽取的 LLM fallback             |
-| 程式碼品質      | `golangci-lint` / `gofumpt`   | Lint + format 規範                          |
+| 類別            | 技術選型                             | 說明                                         |
+| --------------- | ------------------------------------ | -------------------------------------------- |
+| 程式語言        | Go (Golang)                          | 遵循 `golang-standards/project-layout` 標準  |
+| CLI 框架        | `cobra`                              | 子命令架構（init / sync / notify）           |
+| HTTP 客戶端     | `net/http`                           | 呼叫 LINE API 與 Discord API                 |
+| HTML 解析       | `goquery` 或等效                     | 解析活動詳細頁 HTML                          |
+| 資料庫          | SQLite                               | 使用 `modernc.org/sqlite`（純 Go、免 CGO）   |
+| 設定檔          | YAML                                 | `config.yaml` + `channel_mapping.yaml`       |
+| 通知推播        | Discord Bot API (`discordgo`)        | `ChannelMessageSend` 等，支援 Markdown 格式  |
+| 通知推播        | Email (Gmail API)                    | `google.golang.org/api/gmail/v1` (OAuth2)    |
+| 排程自動化      | GCP Cloud Scheduler + GitHub Actions | Cloud Scheduler 定時觸發 `workflow_dispatch` |
+| Bot 部署        | Render free tier / 本機              | WebSocket Gateway (常駐模式)                 |
+| AI 強化（選配） | OpenAI / Ollama                      | 詳細頁關鍵字抽取的 LLM fallback              |
+| 程式碼品質      | `golangci-lint` / `gofumpt`          | Lint + format 規範                           |
 
 ---
 
@@ -63,9 +63,15 @@ graph TB
         GMAIL_API["Gmail API<br/>(OAuth2)"]
     end
 
+    subgraph Scheduler["GCP Cloud Scheduler"]
+        CLOUD_SYNC["Sync 排程<br/>00:00:05"]
+        CLOUD_NOTIFY["Notify 排程<br/>00:02:00"]
+    end
+
     subgraph GHA["GitHub Actions"]
-        SYNC_CRON["sync.yml<br/>12:00 / 23:00 / 00:05"]
-        NOTIFY_CRON["notify.yml<br/>23:30"]
+        GH_API["GitHub REST API<br/>workflow_dispatch"]
+        SYNC_WF["sync.yml"]
+        NOTIFY_WF["notify.yml"]
     end
 
     subgraph App["Go 應用程式"]
@@ -90,8 +96,12 @@ graph TB
         DB["data/line_tasks.db<br/>(SQLite)"]
     end
 
-    SYNC_CRON --> CMD_SCH
-    NOTIFY_CRON --> CMD_SCH
+    CLOUD_SYNC -->|"POST workflow_dispatch<br/>Bearer Fine-grained PAT"| GH_API
+    CLOUD_NOTIFY -->|"POST workflow_dispatch<br/>Bearer Fine-grained PAT"| GH_API
+    GH_API --> SYNC_WF
+    GH_API --> NOTIFY_WF
+    SYNC_WF --> CMD_SCH
+    NOTIFY_WF --> CMD_SCH
     CMD_SCH --> API_CLIENT
     CMD_SCH --> NOTIFY
     CMD_BOT --> BOT
@@ -271,25 +281,28 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 ### 5.6 GitHub Actions 自動化模組
 
 **功能說明**：
-透過 GitHub Actions Cron 排程自動觸發 Sync 與 Notify 流程，並在 DB 有變更時自動 commit-back 至 repo。
+透過 **GCP Cloud Scheduler** 定時呼叫 GitHub REST API 觸發 `workflow_dispatch` 事件，自動執行 Sync 與 Notify 流程。Sync 完成後若 DB 有變更，自動 commit-back 至 repo。GitHub Actions 不再使用 Cron 排程，僅保留 `workflow_dispatch` 作為觸發方式。
+
+#### 排程觸發機制
+
+所有排程由 **GCP Cloud Scheduler** 統一管理，透過 GitHub REST API 觸發對應 Workflow 的 `workflow_dispatch` 事件，使用 **Fine-grained PAT** 認證（僅 `Actions: Read and write`、限定單一 repo）。
+
+| Cloud Scheduler 排程 (TWN) | 觸發 Workflow | 用途         |
+| -------------------------- | ------------- | ------------ |
+| 00:00:05                   | `sync.yml`    | 每日活動同步 |
+| 00:02:00                   | `notify.yml`  | 每日任務推播 |
 
 #### `sync.yml`
-| 排程 (UTC)          | 排程 (TWN) | 用途     |
-| ------------------- | ---------- | -------- |
-| `0 4 * * *`         | 12:00      | 午間同步 |
-| `0 15 * * *`        | 23:00      | 晚間同步 |
-| `5 16 * * *`        | 00:05      | 午夜同步 |
-| `workflow_dispatch` | —          | 手動觸發 |
+| 觸發方式            | 說明                                    |
+| ------------------- | --------------------------------------- |
+| `workflow_dispatch` | GCP Cloud Scheduler 外部觸發 / 手動觸發 |
 
 **流程**：checkout → `go run ./cmd/scheduler sync` → commit & push `data/line_tasks.db`（若有變更）
 
 #### `notify.yml`
-| 排程 (UTC)          | 排程 (TWN) | 用途                                                   |
-| ------------------- | ---------- | ------------------------------------------------------ |
-| `30 15 * * *`       | 23:30      | 每日推播（Cron 備援；主要由 GCP Cloud Scheduler 觸發） |
-| `workflow_dispatch` | —          | 手動觸發 / GCP Cloud Scheduler 外部觸發                |
-
-> **外部排程**：Notify 主要由 GCP Cloud Scheduler 透過 GitHub REST API 觸發 `workflow_dispatch`，使用 Fine-grained PAT 認證（僅 `Actions: Read and write`、限定單一 repo）。
+| 觸發方式            | 說明                                    |
+| ------------------- | --------------------------------------- |
+| `workflow_dispatch` | GCP Cloud Scheduler 外部觸發 / 手動觸發 |
 
 **流程**：checkout → `go run ./cmd/scheduler notify`
 
@@ -426,8 +439,16 @@ flowchart TD
 ```mermaid
 %%{init: {'theme':'dark'}}%%
 flowchart TD
-    subgraph sync_flow["sync.yml (12:00 / 23:00 / 00:05)"]
-        S1["Cron 觸發 or 手動 dispatch"] --> S2["Checkout repo<br/>(含 data/line_tasks.db)"]
+    subgraph scheduler["GCP Cloud Scheduler"]
+        CS_SYNC["Sync 排程<br/>(00:00:05)"]
+        CS_NOTIFY["Notify 排程<br/>(00:02:00)"]
+    end
+
+    CS_SYNC -->|"POST workflow_dispatch<br/>Bearer PAT"| GH_API_S["GitHub REST API"]
+    CS_NOTIFY -->|"POST workflow_dispatch<br/>Bearer PAT"| GH_API_N["GitHub REST API"]
+
+    subgraph sync_flow["sync.yml"]
+        GH_API_S --> S2["Checkout repo<br/>(含 data/line_tasks.db)"]
         S2 --> S3["go run ./cmd/scheduler sync"]
         S3 --> S4{"DB 有變更?"}
         S4 -->|"有"| S5["git commit & push<br/>data/line_tasks.db"]
@@ -435,8 +456,8 @@ flowchart TD
         S5 --> S6
     end
 
-    subgraph notify_flow["notify.yml (23:30 backup / GCP trigger)"]
-        N1["Cron 觸發 or 手動 dispatch"] --> N2["Checkout repo"]
+    subgraph notify_flow["notify.yml"]
+        GH_API_N --> N2["Checkout repo"]
         N2 --> N3["go run ./cmd/scheduler notify"]
         N3 --> N4["Discord/Email 推播完成"]
     end
@@ -574,11 +595,7 @@ database:
 channel_mapping:
   path: "config/channel_mapping.yaml"
 
-sync:
-  cron:
-    - "0 4 * * *"   # UTC 04:00 = TWN 12:00
-    - "0 15 * * *"   # UTC 15:00 = TWN 23:00
-    - "5 16 * * *"   # UTC 16:05 = TWN 00:05
+
 
 api:
   base_url: "https://ec-bot-web.line-apps.com/event-wall/home"
@@ -635,13 +652,13 @@ on_missing: warn   # warn | skip | error
 - **敏感資訊管理**：Discord Bot Token 等私密資訊透過 GitHub Secrets 或環境變數注入，不硬編碼於配置檔。
 - **管理權限**：Bot 互動限定在 `DISCORD_ADMIN_CHANNEL_ID` 指明的頻道內，避免未授權操作。
 - **Email 認證**：使用 Gmail API 進行 OAuth2 認證（**Production Mode**，refresh token 不受 7 天過期限制），捨棄舊有的 SMTP App Password 降低被攔截的風險，且要求從 `.gitignore` 排除 `credentials.json` 與 `token.json`。
-- **外部排程認證**：GCP Cloud Scheduler 使用 GitHub **Fine-grained PAT**（僅授予 `Actions: Read and write`、限定單一 repo、90 天過期定期輪替），最小化憑證洩漏風險。
+- **外部排程認證**：GCP Cloud Scheduler 作為 Sync 與 Notify 的唯一排程觸發源，使用 GitHub **Fine-grained PAT**（僅授予 `Actions: Read and write`、限定單一 repo、90 天過期定期輪替），最小化憑證洩漏風險。
 - **API 偽裝**：HTTP 請求帶入瀏覽器 User-Agent 與正確 origin/referer，避免被封鎖。
 
 ### 10.6 可部署性
 
 - **純 Go 編譯**：使用 `modernc.org/sqlite` 免 CGO，支援跨平台編譯。
-- **GitHub Actions 自動化**：排程執行（GCP Cloud Scheduler 外部觸發 + GitHub Cron 備援）與 DB 持久化，零人工介入。
+- **GitHub Actions 自動化**：由 GCP Cloud Scheduler 統一排程觸發 `workflow_dispatch`，搭配 GitHub Actions 執行 Sync/Notify 與 DB 持久化，零人工介入。
 - **Bot 部署靈活性**：支援 Render free tier 雲端常駐或本機背景執行。
 
 ### 10.7 可擴充性
