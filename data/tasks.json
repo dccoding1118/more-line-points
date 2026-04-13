@@ -1,0 +1,494 @@
+{
+  "date": "2026-04-13",
+  "generated_at": "2026-04-13T22:28:35+08:00",
+  "tasks": [
+    {
+      "id": "wJ8iMCL1bwwmOTlu",
+      "title": "4月好貨大聲公 第二彈",
+      "channel_name": "LINE購物 夯話題",
+      "channel_id": "@twechottopic",
+      "type": "keyword",
+      "day": 0,
+      "keyword": "0413好貨大聲公",
+      "deep_link": "https://line.me/R/oaMessage/@twechottopic/?0413好貨大聲公",
+      "page_url": "https://buy.line.me/u/article/619458?utm_source=OA\u0026utm_medium=hottopic_collectcard\u0026utm_campaign=collectcard20260413"
+    },
+    {
+      "id": "gwuIBRDcQ7m5eFyp",
+      "title": "202604省錢疊疊樂",
+      "channel_name": "LINE購物品牌名店",
+      "channel_id": "@commercetw",
+      "type": "other",
+      "day": 0,
+      "page_url": "https://buy.line.me/u/article/618793?utm_source=OA\u0026utm_medium=brand_luckydraw\u0026utm_campaign=brandjenga20260413"
+    },
+    {
+      "id": "gMn1cdP0Jw3Zw5qu",
+      "title": "收集祝福禮物",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "keyword",
+      "day": 0,
+      "keyword": "0413祝福禮物",
+      "deep_link": "https://line.me/R/oaMessage/@linegiftshoptw/?0413祝福禮物",
+      "page_url": "https://event.line.me/article/69d74c4e514012ff93cbed77_c0f6f1ee173dafc419ede78d90cdd04aee205188148492f3a9f5c7b5120cf76d?utm_source=OA\u0026utm_medium=giftshop_collectcard\u0026utm_campaign=traffic_20260413_R2_0000_mass_mk_event_C98_P06_non_checkin_202604"
+    },
+    {
+      "id": "ZP67Bg7WRfKix9m3",
+      "title": "202604好物購心動 第四波",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "keyword",
+      "day": 0,
+      "keyword": "0413購心動四",
+      "deep_link": "https://line.me/R/oaMessage/@lineshopping_tw/?0413購心動四",
+      "page_url": "https://buy.line.me/u/article/619122?utm_source=OA\u0026utm_medium=shopping_luckydraw\u0026utm_campaign=heart20260413"
+    },
+    {
+      "id": "XN0ppxVwkYsDS7OV",
+      "title": "4月開啟新奇驚喜箱 第二彈",
+      "channel_name": "LINE購物 夯話題",
+      "channel_id": "@twechottopic",
+      "type": "keyword",
+      "day": 0,
+      "keyword": "0413新奇驚喜箱",
+      "deep_link": "https://line.me/R/oaMessage/@twechottopic/?0413新奇驚喜箱",
+      "page_url": "https://buy.line.me/u/article/619457?utm_source=OA\u0026utm_medium=hottopic_luckydraw\u0026utm_campaign=surprise20260413"
+    },
+    {
+      "id": "VXi2QjSsz4sBKeWY",
+      "title": "202604好購指南針第一彈",
+      "channel_name": "LINE購物品牌名店",
+      "channel_id": "@commercetw",
+      "type": "keyword",
+      "day": 0,
+      "keyword": "0413指南針",
+      "deep_link": "https://line.me/R/oaMessage/@commercetw/?0413指南針",
+      "page_url": "https://buy.line.me/u/article/619383?utm_source=OA\u0026utm_medium=brand_luckydraw\u0026utm_campaign=brandLD20260413"
+    },
+    {
+      "id": "M337rbyim0GHUQuW",
+      "title": "第三優惠集章爽！報到集章最高搶900點",
+      "channel_name": "LINE購物品牌名店",
+      "channel_id": "@commercetw",
+      "type": "keyword",
+      "day": 0,
+      "keyword": "0413集章爽3",
+      "deep_link": "https://line.me/R/oaMessage/@commercetw/?0413集章爽3",
+      "page_url": "https://buy.line.me/u/article/619384?utm_source=OA\u0026utm_medium=brand_collectcard\u0026utm_campaign=brandcollectcard20260413"
+    },
+    {
+      "id": "uMcr0wjsGzOxeBsm",
+      "title": "202604優惠購+1 第三波",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "keyword",
+      "day": 1,
+      "keyword": "0413優惠購三",
+      "deep_link": "https://line.me/R/oaMessage/@lineshopping_tw/?0413優惠購三",
+      "page_url": "https://buy.line.me/u/article/619123?utm_source=OA\u0026utm_medium=shopping_luckydraw\u0026utm_campaign=one20260412"
+    },
+    {
+      "id": "QTdclL1pl2uSMuCH",
+      "title": "202604相揪購划算 第二波",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "keyword",
+      "day": 1,
+      "keyword": "0413購划算二",
+      "deep_link": "https://line.me/R/oaMessage/@lineshopping_tw/?0413購划算二",
+      "page_url": "https://buy.line.me/u/article/619125?utm_source=OA\u0026utm_medium=shopping_collectcard\u0026utm_campaign=cheap20260412"
+    },
+    {
+      "id": "c3Iz3RCdTFROS2bC",
+      "title": "周氏喵喵的下班！更新APP簽到搶888點",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "app-checkin",
+      "day": 2,
+      "deep_link": "https://buy.line.me/content/lineshoppingapp/?utm_source=app_event\u0026utm_medium=app_other\u0026utm_campaign=20260407sticker",
+      "page_url": "https://buy.line.me/u/article/619167?utm_source=app_event\u0026utm_medium=app_other\u0026utm_campaign=appcc260411"
+    },
+    {
+      "id": "i4W2YyY4npM3oeco",
+      "title": "202604好物購心動 第三波",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "keyword",
+      "day": 3,
+      "keyword": "0413購心動三",
+      "deep_link": "https://line.me/R/oaMessage/@lineshopping_tw/?0413購心動三",
+      "page_url": "https://buy.line.me/u/article/619121?utm_source=OA\u0026utm_medium=shopping_luckydraw\u0026utm_campaign=heart20260410"
+    },
+    {
+      "id": "LE7EoWANTBI5QgKY",
+      "title": "招財貓舉哪一手？分享活動有機會拿點數！",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "share",
+      "day": 3,
+      "deep_link": "https://event.line.me/s/4qJPgEDZDubo",
+      "page_url": "https://event.line.me/article/69ca34a92b159898906f9cb8_98e36135a28add354d2c841f6e68db0f5ddf50f0d56fd621a18f4342d39fd4f5?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=traffic_20260410_R1_0000_mass_mk_event_C98_P06_non_giftshopmgm20260410"
+    },
+    {
+      "id": "H5XaOfRHjVNkJ4j8",
+      "title": "202604百貨好康賺不完 第二波",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "keyword",
+      "day": 3,
+      "keyword": "0413賺不完二",
+      "deep_link": "https://line.me/R/oaMessage/@lineshopping_tw/?0413賺不完二",
+      "page_url": "https://buy.line.me/u/article/619128?utm_source=OA\u0026utm_medium=shopping_luckydraw\u0026utm_campaign=department20260410"
+    },
+    {
+      "id": "AnBaBXTNLkcwCXTO",
+      "title": "202604優惠觀察室第一彈",
+      "channel_name": "LINE購物品牌名店",
+      "channel_id": "@commercetw",
+      "type": "keyword",
+      "day": 3,
+      "keyword": "0413觀察室",
+      "deep_link": "https://line.me/R/oaMessage/@commercetw/?0413觀察室",
+      "page_url": "https://buy.line.me/u/article/619381?utm_source=OA\u0026utm_medium=brand_luckydraw\u0026utm_campaign=brandLD20260410"
+    },
+    {
+      "id": "fqEteIBdyacZEYWK",
+      "title": "四月送禮心意不斷！搶限量10點",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 4,
+      "page_url": "https://gift-shop.landpress.line.me/20260409_R1_pointLD/?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=buyer_20260409_O1_1400_segment_mk_event_C98_P05_20260409_R1_pointLD"
+    },
+    {
+      "id": "FNs9qiaDkdRjNQ7t",
+      "title": "四月送禮心意不斷！搶限量20點",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 4,
+      "page_url": "https://gift-shop.landpress.line.me/20260409_R0_pointLD/?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=buyer_20260409_O1_1400_segment_mk_event_C98_P05_20260409_R0_pointLD"
+    },
+    {
+      "id": "xx2mrwz9EwO9e1E1",
+      "title": "202604好康1+1 第三彈",
+      "channel_name": "LINE購物品牌名店",
+      "channel_id": "@commercetw",
+      "type": "keyword",
+      "day": 4,
+      "keyword": "0413好康3",
+      "deep_link": "https://line.me/R/oaMessage/@commercetw/?0413好康3",
+      "page_url": "https://buy.line.me/u/article/619380?utm_source=OA\u0026utm_medium=brand_luckydraw\u0026utm_campaign=brandRG20260409"
+    },
+    {
+      "id": "278fDQYC9hLe5rPQ",
+      "title": "202604嚴選好物報 第二波",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "keyword",
+      "day": 4,
+      "keyword": "0413好物報二",
+      "deep_link": "https://line.me/R/oaMessage/@lineshopping_tw/?0413好物報二",
+      "page_url": "https://buy.line.me/u/article/619126?utm_source=OA\u0026utm_medium=shopping_luckydraw\u0026utm_campaign=news20260409"
+    },
+    {
+      "id": "y67xAeKRPFdRzQZS",
+      "title": "4月好貨刮刮樂 第一彈",
+      "channel_name": "LINE購物 夯話題",
+      "channel_id": "@twechottopic",
+      "type": "keyword",
+      "day": 5,
+      "keyword": "0413刮刮樂",
+      "deep_link": "https://line.me/R/oaMessage/@twechottopic/?0413刮刮樂",
+      "page_url": "https://buy.line.me/u/article/619385?utm_source=OA\u0026utm_medium=hottopic_luckydraw\u0026utm_campaign=card20260408"
+    },
+    {
+      "id": "nZckc9o4ywsocOpG",
+      "title": "4月搶點High起來 第一彈",
+      "channel_name": "LINE購物 夯話題",
+      "channel_id": "@twechottopic",
+      "type": "keyword",
+      "day": 5,
+      "keyword": "0413搶點",
+      "deep_link": "https://line.me/R/oaMessage/@twechottopic/?0413搶點",
+      "page_url": "https://buy.line.me/u/article/619382?utm_source=OA\u0026utm_medium=hottopic_luckydraw\u0026utm_campaign=high20260408"
+    },
+    {
+      "id": "lz5PdS7Iam6fxBvO",
+      "title": "202604品牌精選局第一彈",
+      "channel_name": "LINE購物品牌名店",
+      "channel_id": "@commercetw",
+      "type": "keyword",
+      "day": 5,
+      "keyword": "0413精選局",
+      "deep_link": "https://line.me/R/oaMessage/@commercetw/?0413精選局",
+      "page_url": "https://buy.line.me/u/article/619070?utm_source=OA\u0026utm_medium=brand_luckydraw\u0026utm_campaign=brandLD20260408"
+    },
+    {
+      "id": "W1moGIkv0or9Hx9S",
+      "title": "202604百貨好康賺不完",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "keyword",
+      "day": 5,
+      "keyword": "0413賺不完",
+      "deep_link": "https://line.me/R/oaMessage/@lineshopping_tw/?0413賺不完",
+      "page_url": "https://buy.line.me/u/article/619127?utm_source=OA\u0026utm_medium=shopping_luckydraw\u0026utm_campaign=department20260408"
+    },
+    {
+      "id": "MVCJiV9zaRAQkSig",
+      "title": "4月搶購不等人 第一彈",
+      "channel_name": "LINE購物 夯話題",
+      "channel_id": "@twechottopic",
+      "type": "keyword",
+      "day": 5,
+      "keyword": "0413搶購",
+      "deep_link": "https://line.me/R/oaMessage/@twechottopic/?0413搶購",
+      "page_url": "https://buy.line.me/u/article/619371?utm_source=OA\u0026utm_medium=hottopic_luckydraw\u0026utm_campaign=wait20260408"
+    },
+    {
+      "id": "oeoLe02yLws8oLQd",
+      "title": "抱團轉運站",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "keyword",
+      "day": 6,
+      "keyword": "0413抱團轉運",
+      "deep_link": "https://line.me/R/oaMessage/@linegiftshoptw/?0413抱團轉運",
+      "page_url": "https://event.line.me/article/69c3af3081ef2d4ddfc0df38_a2615e38b6ccceff44a5e33875c8bb8ffa75940646ce4017f32348c9cbe5c650?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=traffic_20260407_R1_0000_mass_mk_event_C98_P06_non_transport0407"
+    },
+    {
+      "id": "Mcbq6VWKmgqa6Bk5",
+      "title": "分享祈願轉好運",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "share",
+      "day": 6,
+      "deep_link": "https://event.line.me/s/3qw4W1maYiKP",
+      "page_url": "https://event.line.me/article/69c4a88efeb090c5de8f5fe2_935e6633e503d788bb2bd067237b650aea2e7956e8f7e6509eac3363b7776463?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=traffic_20260407_R1_0000_mass_mk_event_C98_P06_non_giftshopsharems202604"
+    },
+    {
+      "id": "8qFWRv1GxkJGKM0m",
+      "title": "4月優惠小幫手 第一彈",
+      "channel_name": "LINE購物 夯話題",
+      "channel_id": "@twechottopic",
+      "type": "keyword",
+      "day": 6,
+      "keyword": "0413小幫手",
+      "deep_link": "https://line.me/R/oaMessage/@twechottopic/?0413小幫手",
+      "page_url": "https://buy.line.me/u/article/619164?utm_source=OA\u0026utm_medium=hottopic_collectcard\u0026utm_campaign=collectcardab20260407"
+    },
+    {
+      "id": "Q2lGij58Lytn3cri",
+      "title": "收集春日好禮拿666點",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 7,
+      "page_url": "https://giftshop.landpress.line.me/202604springevent/"
+    },
+    {
+      "id": "N2JFxkR5i6rpodaq",
+      "title": "全民抱團+1集氣旺好運！",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 7,
+      "page_url": "https://gift-shop.landpress.line.me/202604plus1?utm_source=OA\u0026utm_medium=giftshop_praise\u0026utm_campaign=buyer_20260406_N1_1300_mass_mk_event_C29_P05_multi_202604plus1"
+    },
+    {
+      "id": "988LxCeVZ3AjTXaS",
+      "title": "媽祖線上遶境，好運「鑽」進來",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 7,
+      "page_url": "https://gift-shop.landpress.line.me/202604Mazu/?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=A09_20260406_1300_N1_P99_C99_S99_202604fortuneday"
+    },
+    {
+      "id": "hvPICkpEV2nR6ea2",
+      "title": "註冊並公開生日，有機會拿1000點！",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 11,
+      "page_url": "https://gift-shop.landpress.line.me/202604_BirthdayRegistration?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=A09_20260402_0000_N9_P99_C99_S11_BdayRegistration"
+    },
+    {
+      "id": "iB5fyXjxgjR8NkyB",
+      "title": "你的人生大事，我用禮物慶祝！",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 12,
+      "page_url": "https://liff.line.me/1429440178-lwY6XWYD/collection-groups/202604_event?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=202604_event"
+    },
+    {
+      "id": "YTutARmszmuIDr6n",
+      "title": "用禮物來分享，他愛的那一派",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 12,
+      "page_url": "https://liff.line.me/1429440178-lwY6XWYD/collection-groups/202604_hobby?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=202604_hobby"
+    },
+    {
+      "id": "1hi5ktJfJFaZP0Vg",
+      "title": "這些時候…我用禮物陪你！",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 12,
+      "page_url": "https://liff.line.me/1429440178-lwY6XWYD/collection-groups/202604_feeling?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=202604_feeling"
+    },
+    {
+      "id": "1waaiVbZ5svaqq7Q",
+      "title": "祝福每天都好運",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "share",
+      "day": 12,
+      "deep_link": "https://event.line.me/s/wNKwE9N0LsQp",
+      "page_url": "https://event.line.me/article/69c0f66fd8b44129361b1a84_b40620c1d8302fb3a5a57876d851de29ebb0781be3d5c1e763d8988331176a1e?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=traffic_20260401_R1_0000_mass_mk_event_C98_P06_non_giftshopsharems202604"
+    },
+    {
+      "id": "t2xW8TVuY4maDOE6",
+      "title": "202604好運籤筒天天試手氣",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "lucky-draw",
+      "day": 12,
+      "deep_link": "https://event.line.me/r/t2xW8TVuY4maDOE6/usfum7",
+      "page_url": "https://buy.line.me/u/article/618781?utm_source=OA\u0026utm_medium=shopping_luckydraw\u0026utm_campaign=entrance"
+    },
+    {
+      "id": "kcGmSbYQB05HHtP1",
+      "title": "202604抽籤吉祥好運到",
+      "channel_name": "LINE購物品牌名店",
+      "channel_id": "@commercetw",
+      "type": "lucky-draw",
+      "day": 12,
+      "deep_link": "https://event.line.me/r/kcGmSbYQB05HHtP1/PUcKmS",
+      "page_url": "https://buy.line.me/u/article/618507?utm_source=OA\u0026utm_medium=brand_luckydraw\u0026utm_campaign=brandentrance202604"
+    },
+    {
+      "id": "j4Vo0Qzlwq9z55C9",
+      "title": "加碼優惠券",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "share",
+      "day": 12,
+      "deep_link": "https://event.line.me/s/88MMprWElirj",
+      "page_url": "https://event.line.me/article/69c0bfd081ef2d4ddfc00c86_2d9febe53c641c9bb32b0d728c771e7ac33d71dcb70c7290458b868f4c4a1e6e?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=traffic_20260401_R1_0000_mass_mk_event_C98_P06_non_coupon20260401"
+    },
+    {
+      "id": "dBL5fLDeMrcpWC2Z",
+      "title": "202604月好事成雙！",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "passport",
+      "day": 12,
+      "deep_link": "https://ec-bot-web.line.me/club?channelId=1530376675",
+      "page_url": "https://buy.line.me/u/article/618786?utm_source=app_event\u0026utm_medium=app_other\u0026utm_campaign=appsuperdouble_2604"
+    },
+    {
+      "id": "ciV6qOubPh1c28Jp",
+      "title": "202604拿到大獎超開心",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "other",
+      "day": 12,
+      "page_url": "https://buy.line.me/u/article/618739?utm_source=app_event\u0026utm_medium=app_other\u0026utm_campaign=appopen2604"
+    },
+    {
+      "id": "aeuvDcADejwje7qh",
+      "title": "202604好康來報到",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "passport",
+      "day": 12,
+      "deep_link": "https://ec-bot-web.line.me/club?channelId=1530376675",
+      "page_url": "https://buy.line.me/u/article/618796?utm_source=app_event\u0026utm_medium=app_other\u0026utm_campaign=passportcc202604"
+    },
+    {
+      "id": "YVNy1iw90AFJXxFs",
+      "title": "202604-06每日好運抽籤筒",
+      "channel_name": "LINE購物 夯話題",
+      "channel_id": "@twechottopic",
+      "type": "lucky-draw",
+      "day": 12,
+      "deep_link": "https://event.line.me/r/YVNy1iw90AFJXxFs/IUZOl3",
+      "page_url": "https://buy.line.me/u/article/618778?utm_source=OA\u0026utm_medium=hottopic_luckydraw\u0026utm_campaign=hotentrance2604"
+    },
+    {
+      "id": "SyxjC12COjpEIQXU",
+      "title": "202604 Lucky7！",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "passport",
+      "day": 12,
+      "deep_link": "https://ec-bot-web.line.me/mission/list?channelId=1530376675",
+      "page_url": "https://buy.line.me/u/article/618730?utm_source=app_event\u0026utm_medium=app_other\u0026utm_campaign=appluckydraw20260401"
+    },
+    {
+      "id": "OyA9o2duNwN1PyNk",
+      "title": "春日煥新迎好日",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "other",
+      "day": 12,
+      "page_url": "https://liff.line.me/1429440178-lwY6XWYD/collection-groups/202604luckygift?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=202604_luckygift"
+    },
+    {
+      "id": "Mk3SgNfgFRcoiozy",
+      "title": "202604逛好店",
+      "channel_name": "LINE 購物",
+      "channel_id": "@lineshopping_tw",
+      "type": "passport",
+      "day": 12,
+      "deep_link": "https://ec-bot-web.line.me/club?channelId=1530376675",
+      "page_url": "https://buy.line.me/u/article/618785?utm_source=app_event\u0026utm_medium=app_other\u0026utm_campaign=appsuper2604"
+    },
+    {
+      "id": "IWsEbB0lKadNn07A",
+      "title": "美食名店摘星地圖",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "share",
+      "day": 12,
+      "deep_link": "https://event.line.me/s/LY33E8AOYUll",
+      "page_url": "https://event.line.me/article/69c0f08920ceecd25ea22673_5c0f2e3b94f0962ba7d5399690f54bfc3de3e7bc856775f55f7ca9a67ad31b42?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=traffic_20260401_R1_0000_mass_mk_event_C98_P06_non_foodmarket20260401"
+    },
+    {
+      "id": "H5pr5G41bMSvSkrG",
+      "title": "貓派 vs 狗派人氣角色對決票選",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "poll",
+      "day": 12,
+      "deep_link": "https://event.line.me/poll/H5pr5G41bMSvSkrG?utm_source=smartchannel\u0026utm_medium=geb\u0026utm_campaign=traffic_20260401_R1_0000_mass_mk_event_C99_P98_non_vote2604",
+      "page_url": "https://event.line.me/poll/H5pr5G41bMSvSkrG?utm_source=smartchannel\u0026utm_medium=geb\u0026utm_campaign=traffic_20260401_R1_0000_mass_mk_event_C99_P98_non_vote2604"
+    },
+    {
+      "id": "5Y5eOCD1eQJZimwg",
+      "title": "美好生活提案",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "share",
+      "day": 12,
+      "deep_link": "https://event.line.me/s/Xp3nbeXP6fxp",
+      "page_url": "https://event.line.me/article/69c0bf1a3214e6f8bcafdcdc_f6f67fb8984220ba296960413880c372c272063c8c26125bf3c934f00ec2b1a4?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=traffic_20260401_R1_0000_mass_mk_event_C98_P06_non_lifemarket20260401"
+    },
+    {
+      "id": "2u6QFQ28e7jO9xJf",
+      "title": "美妝香氛風格圖鑑",
+      "channel_name": "LINE 禮物",
+      "channel_id": "@linegiftshoptw",
+      "type": "share",
+      "day": 12,
+      "deep_link": "https://event.line.me/s/KE33gEo0YfVd",
+      "page_url": "https://event.line.me/article/69c0eb9481ef2d4ddfc01b85_b5cee08b38f43cfbbf8dd434dac785f8c9da1353c3846f650d267ba3d30a8b93?utm_source=OA\u0026utm_medium=giftshop_luckydraw\u0026utm_campaign=traffic_20260401_R1_0000_mass_mk_event_C98_P06_non_fragrancebook20260401"
+    }
+  ]
+}
