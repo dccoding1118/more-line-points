@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/dccoding1118/more-line-points/internal/model"
@@ -38,6 +39,8 @@ type TaskItem struct {
 	Keyword     string `json:"keyword,omitempty"`
 	DeepLink    string `json:"deep_link,omitempty"`
 	PageURL     string `json:"page_url,omitempty"`
+
+	validFrom time.Time `json:"-"`
 }
 
 // TaskPage represents the structure of tasks.json.
@@ -82,6 +85,7 @@ func (e *JSONExporter) Export(ctx context.Context, targetDate time.Time, outputP
 			Type:        act.Type,
 			Day:         day,
 			PageURL:     act.PageURL,
+			validFrom:   act.ValidFrom,
 		}
 
 		switch act.Type {
@@ -106,6 +110,26 @@ func (e *JSONExporter) Export(ctx context.Context, targetDate time.Time, outputP
 
 		outTasks = append(outTasks, item)
 	}
+
+	// 依指定規則排序 Tasks
+	sort.SliceStable(outTasks, func(i, j int) bool {
+		ti, tj := outTasks[i], outTasks[j]
+
+		// 1. 維持同類型任務群聚
+		if ti.Type != tj.Type {
+			return ti.Type < tj.Type
+		}
+
+		// 2. 當為 keyword 時，主要以 ChannelID 來 ASC 排序
+		if ti.Type == model.ActivityTypeKeyword {
+			if ti.ChannelID != tj.ChannelID {
+				return ti.ChannelID < tj.ChannelID
+			}
+		}
+
+		// 3. 其他類型或相同的 ChannelID，依原本要求最新的放前面
+		return ti.validFrom.After(tj.validFrom)
+	})
 
 	page := TaskPage{
 		Date:        dateStr,
