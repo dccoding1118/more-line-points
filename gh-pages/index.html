@@ -126,11 +126,6 @@
       .task-btn:hover {
         background-color: var(--accent-hover);
       }
-      .task-item.done .task-btn {
-        background-color: var(--border);
-        color: var(--text-secondary);
-        pointer-events: none;
-      }
       .task-icon {
         font-size: 20px;
         margin-right: 12px;
@@ -139,9 +134,6 @@
       .task-item.done .task-icon {
         display: inline-block;
         color: var(--accent);
-      }
-      .task-item.done .task-badge {
-        display: none;
       }
     </style>
   </head>
@@ -230,12 +222,14 @@
 
           const el = document.getElementById(`task-${id}`);
           if (el) el.classList.add("done");
-
-          const btn = document.getElementById(`btn-${id}`);
-          if (btn) btn.textContent = "已完成";
         }
         if (url) {
-          window.open(url, "_blank");
+          const a = document.createElement("a");
+          a.href = url;
+          a.style.display = "none";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
         }
       }
 
@@ -299,7 +293,7 @@
               <div class="task-desc">${descText}</div>
             </div>
             <button id="btn-${task.id}" class="task-btn" onclick="toggleTask('${task.id}', '${targetUrl}')">
-              ${isDone ? "已完成" : "前往 ➔"}
+              前往 ➔
             </button>
           `;
             listEl.appendChild(itemEl);

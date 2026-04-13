@@ -8,11 +8,16 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/dccoding1118/more-line-points/cmd/scheduler/cli"
 	"github.com/joho/godotenv"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+func init() {
+	time.Local = time.FixedZone("Asia/Taipei", 8*3600)
+}
 
 func main() {
 	// 嘗試強制載入 .env（覆蓋目前 session 殘留的變數，例如舊的空字串）
