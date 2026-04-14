@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -37,8 +38,9 @@ type EmailConfig struct {
 	Enabled         bool     `yaml:"enabled"`
 	CredentialsPath string   `yaml:"credentials_path"`
 	TokenPath       string   `yaml:"token_path"`
-	SenderMail      string   `yaml:"sender_mail"`
+	SenderMail      string   `yaml:"sender"`
 	Recipients      []string `yaml:"recipients"`
+	RecipientsEnv   string   `yaml:"recipients_env"` // Commas separated string for env injection
 }
 
 type DatabaseConfig struct {
@@ -115,6 +117,20 @@ func Load(path string) (*Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal([]byte(content), &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	// 支援從字串環境變數轉換為陣列
+	if cfg.Email.RecipientsEnv != "" {
+		parts := strings.Split(cfg.Email.RecipientsEnv, ",")
+		var parsed []string
+		for _, p := range parts {
+			if v := strings.TrimSpace(p); v != "" {
+				parsed = append(parsed, v)
+			}
+		}
+		if len(parsed) > 0 {
+			cfg.Email.Recipients = parsed
+		}
 	}
 
 	if err := cfg.Validate(); err != nil {

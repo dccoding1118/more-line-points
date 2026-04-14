@@ -32,6 +32,6 @@ email:
   enabled: true
   credentials_path: "${GMAIL_CREDENTIAL_PATH}"
   token_path: "${GMAIL_TOKEN_PATH}"
-  sender: "windyskykarl912@gmail.com"
-  recipients:
-    - "windyskykarl912@gmail.com"
+  sender: "${EMAIL_SENDER}"
+  recipients_env: "${EMAIL_RECIPIENTS}"
+  recipients: []
