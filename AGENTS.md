@@ -14,6 +14,12 @@ keywords, and sends daily task summaries via Discord and Email.
 **Language**: Go (Golang)
 **Architecture**: `golang-standards/project-layout`
 
+**Implemented**: `scheduler` CLI (`init` / `sync` / `notify`), three-layer hash
+sync, rule-based HTML parsing, Discord + Email notify, `tasks.json` export +
+GitHub Pages dashboard, and CI/CD automation.
+**Not yet implemented (roadmap)**: the interactive Discord Bot command interface
+(`cmd/bot`) and the optional LLM parsing fallback.
+
 ---
 
 ## Directory Structure
@@ -21,8 +27,7 @@ keywords, and sends daily task summaries via Discord and Email.
 | Path                 | Purpose                                                             |
 | -------------------- | ------------------------------------------------------------------- |
 | `cmd/scheduler/`     | CLI entry point: `main.go` + `cli/` sub-package                     |
-| `cmd/scheduler/cli/` | Cobra subcommands (`root.go`, `init.go`, `sync.go`, etc.)           |
-| `cmd/bot/`           | Discord Bot WebSocket Gateway entry point                           |
+| `cmd/scheduler/cli/` | Cobra subcommands (`root.go`, `init.go`, `sync.go`, `notify.go`)    |
 | `internal/`          | Private application logic (see design docs for module details)      |
 | `config/`            | Runtime configuration files (`config.yaml`, `channel_mapping.yaml`) |
 | `data/`              | SQLite database file (`line_tasks.db`, tracked in Git)              |
@@ -59,7 +64,7 @@ mise run build   # Build binary → bin/scheduler
 # Sync remote line events
 ./bin/scheduler sync --config ./config/config.yaml
 
-# Notify tomorrow's tasks
+# Notify tasks (defaults to today, Asia/Taipei)
 ./bin/scheduler notify --config ./config/config.yaml
 
 # Notify specified date tasks
@@ -132,21 +137,20 @@ mise run build   # Build binary → bin/scheduler
 
 ### Workflow Files
 
-| File                                  | Purpose                                     | Trigger                                 |
-| ------------------------------------- | ------------------------------------------- | --------------------------------------- |
-| `.github/actions/setup-go/action.yml` | Composite Action: setup Go + module cache   | Referenced by all workflows             |
-| `.github/workflows/ci.yml`            | Lint → Unit Test → Integration Test → Build | `push`/`pull_request` to `main`, manual |
-| `.github/workflows/sync.yml`          | Sync LINE events + auto commit-back DB      | Cron schedule (3x daily), manual        |
-| `.github/workflows/notify.yml`        | Notify daily tasks via Discord & Email      | Cron schedule (1x daily), manual        |
+| File                                  | Purpose                                              | Trigger                                          |
+| ------------------------------------- | ---------------------------------------------------- | ------------------------------------------------ |
+| `.github/actions/setup-go/action.yml` | Composite Action: setup Go + module cache            | Referenced by all workflows                      |
+| `.github/workflows/ci.yml`            | Lint → Unit Test (`-race`) → Integration Test → Build | `push`/`pull_request` to `main`, manual          |
+| `.github/workflows/sync.yml`          | Sync LINE events + commit-back `data/`, then call `notify.yml` | `workflow_dispatch` (Cloud Scheduler / manual)   |
+| `.github/workflows/notify.yml`        | Notify daily tasks via Discord & Email               | `workflow_call` (from `sync.yml`), `workflow_dispatch` |
+| `.github/workflows/deploy.yml`        | Deploy dashboard to GitHub Pages                     | `push` to `main` on `gh-pages/index.html`, manual |
 
-### Cron Schedule (UTC → Taiwan UTC+8)
+### Scheduling
 
-| Workflow     | Cron (UTC)    | Taiwan Time (UTC+8) | Description                                            |
-| ------------ | ------------- | ------------------- | ------------------------------------------------------ |
-| `sync.yml`   | `0 4 * * *`   | 12:00               | Noon sync                                              |
-| `sync.yml`   | `0 15 * * *`  | 23:00               | Evening sync                                           |
-| `sync.yml`   | `5 16 * * *`  | 00:05 (+1d)         | Midnight sync                                          |
-| `notify.yml` | `30 15 * * *` | 23:30               | Daily notify (backup; primary via GCP Cloud Scheduler) |
+Workflows define **no `schedule` (cron)** trigger. **GCP Cloud Scheduler** is the
+single scheduled trigger: it fires `sync.yml` via `workflow_dispatch`, and
+`sync.yml` chains into `notify.yml` via `workflow_call`. (GitHub-native cron was
+intentionally removed because of its 10–60 min delay.)
 
 ### GitHub Secrets Required
 
@@ -159,20 +163,29 @@ mise run build   # Build binary → bin/scheduler
 | `GMAIL_CREDENTIALS_JSON`    | Gmail API credentials.json content |
 | `GMAIL_TOKEN_JSON`          | Gmail API token.json content       |
 
+### GitHub Variables Required (Actions → Variables)
+
+| Variable Name      | Purpose                              |
+| ------------------ | ------------------------------------ |
+| `EMAIL_SENDER`     | Sender email address                 |
+| `EMAIL_RECIPIENTS` | Comma-separated recipient list       |
+
+`notify.yml` writes these Secrets/Variables into a `.env` plus `credentials.json`
+/ `token.json` at runtime before invoking the binary.
+
 ### CI/CD Rules
 
 - **CI does not use `mise`**: Workflows use Go CLI and official GitHub Actions directly
 - **`ci.yml` `paths-ignore`**: Changes to `data/**`, `docs/**`, `*.md` do NOT trigger CI
-- **Sync commit-back**: Uses `github-actions[bot]` as commit author with message `chore(data): auto-sync line_tasks.db`
+- **Sync commit-back**: Uses `github-actions[bot]` as commit author with message `chore(data): auto-sync line_tasks.db and tasks.json` (touches `data/line_tasks.db` + `data/tasks.json`)
 - **No infinite loop**: `sync.yml` commit-back only touches `data/`, which is excluded from CI triggers
-- **Permissions**: `ci.yml` → `contents: read`, `sync.yml` → `contents: write`, `notify.yml` → `contents: read`
+- **Permissions**: `ci.yml` → `contents: read`, `sync.yml` → `contents: write`, `notify.yml` → `contents: read`, `deploy.yml` → `pages: write` + `id-token: write`
 
 ### External Scheduler (GCP Cloud Scheduler)
 
 | Item                | Value                                                        |
 | ------------------- | ------------------------------------------------------------ |
-| **Primary trigger** | GCP Cloud Scheduler → `workflow_dispatch` (precise cron)     |
-| **Backup trigger**  | GitHub Actions `schedule` cron (may delay 10–60 min)         |
+| **Trigger**         | GCP Cloud Scheduler → `sync.yml` `workflow_dispatch`         |
 | **Auth method**     | Fine-grained PAT (Actions: Read and write, single repo only) |
 | **PAT rotation**    | Every 90 days                                                |
 | **Gmail OAuth**     | Production Mode (refresh token does not expire every 7 days) |

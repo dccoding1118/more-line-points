@@ -1,7 +1,12 @@
 # LINE 活動集點任務爬蟲與推播系統 — 需求規格文件
 
-> **版本**: v1.3
-> **最後更新**: 2026-04-12
+> **版本**: v1.4
+> **最後更新**: 2026-07-03
+
+> **實作狀態（以程式碼為準）**：
+> - ✅ **已實作**：`scheduler` CLI（`init` / `sync` / `notify`）、三層 Hash 同步、規則式 HTML 解析（`config/parse_rules.yaml`）、Discord + Email 推播、`tasks.json` 產出與 GitHub Pages 靜態網頁、CI/CD 自動化（`ci.yml` / `sync.yml` / `notify.yml` / `deploy.yml`）。
+> - 🚧 **規劃中（尚未實作）**：§5.5 Discord Bot 指令介面（無 `cmd/bot`）、§5.7 AI/LLM fallback。
+> - ℹ️ 推播訊息採**精簡摘要**（任務數 + 網頁首頁連結），非全文任務清單（詳見 §5.3）。
 
 ---
 
@@ -9,7 +14,7 @@
 
 LINE 平台在台灣定期舉辦各種集點、關鍵字回饋、分享抽獎等行銷活動，使用者需每日手動前往 LINE 活動牆頁面查看當日可參與的活動，並逐一開啟對應官方帳號輸入關鍵字或完成分享任務。此過程繁瑣且容易遺漏。
 
-本專案旨在開發一套自動化爬蟲與推播系統，定期從 LINE 活動牆後端 API 抓取最新活動資訊，解析各活動的任務類型與關鍵字排程，並於每日固定時段透過 Telegram Bot 推播隔日任務清單（含可直接點擊的 LINE deep link），讓使用者一鍵完成任務。
+本專案旨在開發一套自動化爬蟲與推播系統，定期從 LINE 活動牆後端 API 抓取最新活動資訊，解析各活動的任務類型與關鍵字排程，並於每日固定時段透過 **Discord 與 Email** 推播精簡摘要（任務數 + 任務網頁首頁連結）；使用者於網頁上取得可直接點擊的 LINE deep link，一鍵完成任務並追蹤進度。
 
 ---
 
@@ -48,13 +53,16 @@ LINE 平台在台灣定期舉辦各種集點、關鍵字回饋、分享抽獎等
 | 任務網頁前端    | 原生 HTML/JS/CSS                     | 響應式、以 localStorage 紀錄進度             |
 | 任務網頁託管    | GitHub Pages                         | 原生靜態網站支援                             |
 | 排程自動化      | GCP Cloud Scheduler + GitHub Actions | Cloud Scheduler 定時觸發 `workflow_dispatch` |
-| Bot 部署        | Render free tier / 本機              | WebSocket Gateway (常駐模式)                 |
-| AI 強化（選配） | OpenAI / Ollama                      | 詳細頁關鍵字抽取的 LLM fallback              |
+| 環境變數 / 日誌 | `godotenv` / `lumberjack`            | `.env` 載入、旋轉式檔案日誌                   |
+| Bot 部署（🚧）  | Render free tier / 本機              | WebSocket Gateway 常駐（尚未實作）           |
+| AI 強化（🚧）   | OpenAI / Ollama                      | 詳細頁關鍵字抽取的 LLM fallback（尚未實作）  |
 | 程式碼品質      | `golangci-lint` / `gofumpt`          | Lint + format 規範                           |
 
 ---
 
 ## 四、高階架構圖
+
+> 下圖含規劃中元件：`cmd/bot`（`CMD_BOT`）與 `bot` 模組目前**尚未實作**。
 
 ```mermaid
 %%{init: {'theme':'dark'}}%%
@@ -181,9 +189,13 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 **功能說明**：
 針對 `type` 為 `unknown`（新活動）或 `keyword`（已知關鍵字活動）的活動，抓取其活動詳細頁 HTML，解析任務類型與逐日關鍵字排程。此頁面結構不固定，為 AI fallback 最有價值的應用場景。
 
-- **`unknown` 類型**：新活動首次進入系統，必須抓取詳細頁以判定任務類型（`keyword` / `share` / `other`），解析後回填 `activities.type`。
+- **`unknown` 類型**：新活動首次進入系統，必須抓取詳細頁以判定任務類型，解析後回填 `activities.type`。
 - **`keyword` 類型**：已知為關鍵字活動，定期抓取詳細頁以檢查關鍵字排程是否異動（Layer 3 Hash 比對）。
-- **`share` / `other` 類型**：已確認為非關鍵字活動，跳過詳細頁抓取。
+- **其他已確認類型**：已確認為非關鍵字活動，跳過詳細頁抓取。
+
+**任務類型（依 `config/parse_rules.yaml` 規則判定，可擴充）**：
+`keyword`、`share`、`shop-collect`、`poll`、`task`、`lucky-draw`、`app-checkin`、`passport`、`other`、`unknown`。
+規則以 `text_patterns` 與 / 或 `url_pattern` 比對，並用 `has_daily_tasks`、`has_keyword`、`url_only`、`use_click_url` 等旗標控制抽取行為。新增類型只需編輯 YAML，無需改碼。
 
 **輸入**：
 | 項目       | 來源            | 說明           |
@@ -193,8 +205,8 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 **輸出**：
 | 項目         | 儲存位置          | 說明                                      |
 | ------------ | ----------------- | ----------------------------------------- |
-| 任務類型     | `activities.type` | `keyword` / `share` / `other` / `unknown` |
-| 關鍵字排程   | `daily_tasks` 表  | 每日對應的關鍵字列表                      |
+| 任務類型     | `activities.type` | 依 `parse_rules.yaml` 判定（見上方類型清單） |
+| 關鍵字排程   | `daily_tasks` 表  | 每日對應的關鍵字 / 連結列表               |
 | Layer 3 Hash | `sync_state` 表   | 關鍵字區塊內容雜湊值                      |
 
 ---
@@ -205,46 +217,40 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 在 Sync 流程完成後發動，統計當日的任務更新數量，並組裝一句包含「GitHub Pages 首頁 URL」的通知訊息，透過 **Discord Bot API** 與 **Email（Gmail API）** 雙管道同時簡短推播。不再派發繁雜的全文任務連結清單。每個管道各自擁有 `enabled` 開關，可獨立啟用或停用。
 
 **輸入**：
-| 項目             | 來源                   | 說明                                             |
-| ---------------- | ---------------------- | ------------------------------------------------ |
-| 明日日期         | 系統時間               | 自動計算                                         |
-| 活動與關鍵字資料 | SQLite                 | `activities` + `daily_tasks` 表查詢              |
-| Discord 設定     | `config.yaml`          | Bot Token、Guild ID、Notify Channel ID           |
-| Email 設定       | `config.yaml`          | credentials_path、token_path、寄件者、收件人清單 |
-| 頻道對應         | `channel_mapping.yaml` | 產生 deep link 所需                              |
+| 項目         | 來源          | 說明                                             |
+| ------------ | ------------- | ------------------------------------------------ |
+| 目標日期     | 系統時間 / `--date` | 預設執行當日（Asia/Taipei）                 |
+| 任務數       | SQLite        | `daily_tasks` 依 `use_date` 查詢後計數           |
+| 網頁首頁 URL | `config.yaml` | `taskpage.github_pages_url`                       |
+| Discord 設定 | `config.yaml` | `enabled`、Bot Token、Notify Channel ID          |
+| Email 設定   | `config.yaml` | `enabled`、credentials_path、token_path、寄件者、收件人 |
 
 **輸出**：
-| 項目         | 目標              | 說明                    |
-| ------------ | ----------------- | ----------------------- |
-| Discord 訊息 | Notify Channel ID | Markdown 格式的任務清單 |
-| Email        | 設定的收件人清單  | HTML 格式的任務清單     |
+| 項目         | 目標              | 說明                                       |
+| ------------ | ----------------- | ------------------------------------------ |
+| Discord 訊息 | Notify Channel ID | 精簡摘要（Markdown，含網頁首頁連結）       |
+| Email        | 設定的收件人清單  | 精簡摘要（HTML，含網頁首頁連結）           |
 
-**訊息格式規格**：
+> **實作說明**：目標日期預設為**執行當日**（Asia/Taipei，非隔日），可用 `--date YYYY-MM-DD` 指定。Discord 與 Email 兩管道各有 `enabled` 開關（預設 Discord `false`、Email `true`），皆停用時直接跳過；單一管道發送失敗只記錄 log，不中斷另一管道。
+
+**訊息格式規格（實際）**：
+
+有任務時：
 ```
-📅 03/04 任務清單
+📅 07/03 LINE 任務清單已更新
+共有 5 項任務等待完成！
 
-━━━━━━━━━━━━━━━━
-🔑 關鍵字任務
-
-📣 LINE 購物
-  • [輸入：SHOP0304](line://ti/p/@lineshopping?text=SHOP0304)
-
-📣 LINE Pay（⚠️ 頻道未設定）
-  • 輸入：PAY0304（請手動開啟頻道）
-
-━━━━━━━━━━━━━━━━
-🔗 分享任務
-
-  • [好友分享抽好禮](https://event.line.me/...)
-  • [LINE TODAY 分享活動](https://event.line.me/...)
-
-━━━━━━━━━━━━━━━━
-📌 其他任務
-
-  • [集點卡任務](https://event.line.me/...)
+👉 [點我前往任務首頁](https://dccoding1118.github.io/more-line-points/)
 ```
 
-**deep link 格式**：
+無任務時：
+```
+📅 07/03 LINE 任務清單
+今日沒有需要執行的任務！
+```
+（Email 主旨統一為 `📅 07/03 LINE 任務清單`，內文為對應 HTML。）
+
+**deep link 格式**：deep link 不再放進推播訊息，而是由 `taskpage` 模組產出至 `tasks.json`，由前端網頁點擊使用：
 - 有 `channel_id` 對應時：`https://line.me/R/oaMessage/@{channel_id}/?{keyword}`
 - 無 `channel_id` 對應時：降級為純文字顯示關鍵字，並附帶 ⚠️ 警示
 
@@ -269,7 +275,9 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 
 ---
 
-### 5.5 Bot 指令介面模組 — `bot` + `discord`
+### 5.5 Bot 指令介面模組 — `bot` + `discord`　🚧 規劃中（尚未實作）
+
+> 目前 repo 尚無 `cmd/bot` 與 `internal/bot`；`internal/discord` 僅實作推播用的 `Sender`。以下為規劃規格。
 
 **功能說明**：
 透過 Discord WebSocket Gateway 模式接收使用者指令，提供即時查詢與手動操作觸發功能。
@@ -333,12 +341,20 @@ user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...
 - `DISCORD_GUILD_ID`：Discord 伺服器 ID
 - `DISCORD_NOTIFY_CHANNEL_ID`：推送每日任務清單的 Channel ID
 - `DISCORD_ADMIN_CHANNEL_ID`：接收管理/維運 slash 指令的 Channel ID
-- `GMAIL_CREDENTIAL_PATH`：Gmail API 的 `credentials.json` 檔案路徑環境變數
-- `GMAIL_TOKEN_PATH`：Gmail API 的 `token.json` 授權檔案路徑環境變數
+- `GMAIL_CREDENTIALS_JSON`：Gmail API `credentials.json` 的**完整內容**
+- `GMAIL_TOKEN_JSON`：Gmail API `token.json` 的**完整內容**
+
+**GitHub Variables 需求**（Actions → Variables）：
+- `EMAIL_SENDER`：寄件者信箱
+- `EMAIL_RECIPIENTS`：收件人清單（逗號分隔）
+
+> `notify.yml` 於執行期把上述 Secrets/Variables 寫入 `.env`，並將 `GMAIL_CREDENTIALS_JSON` / `GMAIL_TOKEN_JSON` 還原成 `credentials.json` / `token.json`（`GMAIL_CREDENTIAL_PATH` / `GMAIL_TOKEN_PATH` 為指向這兩個檔案的環境變數）。
 
 ---
 
-### 5.7 AI 強化模組（選配）— `htmlparser` 擴充
+### 5.7 AI 強化模組（選配）— `htmlparser` 擴充　🚧 規劃中（尚未實作）
+
+> 目前 `htmlparser` 僅有規則式解析（`config/parse_rules.yaml`），尚未接入任何 LLM。以下為規劃規格。
 
 **功能說明**：
 為 `htmlparser` 加入 LLM fallback 機制，當規則式解析信心不足時，將頁面關鍵段落送入 LLM 進行關鍵字抽取。
@@ -413,19 +429,18 @@ flowchart TD
 ```mermaid
 %%{init: {'theme':'dark'}}%%
 flowchart TD
-    START["開始 Notify"] --> CALC_DATE["計算明日日期"]
-    CALC_DATE --> QUERY_KW["查詢明日 keywords<br/>(JOIN activities)"]
-    QUERY_KW --> QUERY_OTHER["查詢 share/other 類型<br/>有效活動"]
-    QUERY_OTHER --> GROUP["依類型與頻道分組"]
-    GROUP --> BUILD_MSG["組裝推播訊息"]
+    START["開始 Notify"] --> CALC_DATE["決定目標日期<br/>(預設當日 / --date)"]
+    CALC_DATE --> QUERY["查詢該日 daily_tasks<br/>並計算任務數 count"]
+    QUERY --> CHK_COUNT{"count > 0?"}
+    CHK_COUNT -->|"是"| MSG_HAS["組裝摘要訊息<br/>『共 N 項』+ 網頁首頁連結"]
+    CHK_COUNT -->|"否"| MSG_NONE["組裝『今日無任務』訊息"]
 
-    BUILD_MSG --> CHK_CH{"有 channel_id?"}
-    CHK_CH -->|"有"| DEEP_LINK["產生 LINE deep link"]
-    CHK_CH -->|"無"| PLAIN_TEXT["降級純文字 + ⚠️"]
-
-    DEEP_LINK --> SEND["透過 discordgo<br/>ChannelMessageSend 推播"]
-    PLAIN_TEXT --> SEND
-    SEND --> DONE["結束"]
+    MSG_HAS --> DISPATCH{"逐一發送啟用管道"}
+    MSG_NONE --> DISPATCH
+    DISPATCH -->|"discord.enabled"| SEND_DC["Discord Sender.SendMessage<br/>(失敗僅記 log)"]
+    DISPATCH -->|"email.enabled"| SEND_EM["Email Sender.SendHTML<br/>(失敗僅記 log)"]
+    SEND_DC --> DONE["結束"]
+    SEND_EM --> DONE
 ```
 
 ### 6.3 Bot 指令處理流程
@@ -507,16 +522,19 @@ flowchart TD
 
 ### `activities` 表
 
+> 由 `internal/storage/schema.go` 建立，啟用 `PRAGMA journal_mode=WAL`、`foreign_keys=ON`、`busy_timeout=5000`。
+
 ```sql
-CREATE TABLE activities (
+CREATE TABLE IF NOT EXISTS activities (
   id            TEXT PRIMARY KEY,           -- 來自 API 的活動唯一 ID
   title         TEXT NOT NULL,
-  channel_name  TEXT,                       -- 頻道顯示名稱（來自 API）
+  channel_name  TEXT NOT NULL,              -- 頻道顯示名稱（來自 API）
   channel_id    TEXT,                       -- LINE 帳號 ID（來自 channel_mapping，可為空）
-  type          TEXT,                       -- keyword | share | other | unknown
-  page_url      TEXT,
-  valid_from    DATE,
-  valid_until   DATE,
+  type          TEXT NOT NULL DEFAULT 'unknown', -- 見 §5.2 類型清單
+  page_url      TEXT NOT NULL,
+  action_url    TEXT,                       -- 直接點擊型任務的目標連結（如抽獎、簽到）
+  valid_from    DATETIME,
+  valid_until   DATETIME,
   is_active     INTEGER NOT NULL DEFAULT 1, -- 0 = 已從清單消失
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -528,11 +546,12 @@ CREATE TABLE activities (
 ### `daily_tasks` 表
 
 ```sql
-CREATE TABLE daily_tasks (
+CREATE TABLE IF NOT EXISTS daily_tasks (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   activity_id   TEXT NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
   use_date      DATE NOT NULL,              -- 使用日期
-  keyword       TEXT NOT NULL,
+  keyword       TEXT,                       -- keyword 型任務的關鍵字（可為空）
+  url           TEXT,                       -- oaMessage deep link 或店家連結
   note          TEXT
 );
 ```
@@ -558,41 +577,45 @@ CREATE TABLE sync_state (
 ```
 .
 ├── cmd/
-│   ├── scheduler/          # Sync / Notify CLI 進入點
-│   │   ├── main.go         # signal handling + cli.Execute(ctx)
-│   │   └── cli/            # Cobra 子命令（每個子命令一個檔案）
-│   │       ├── root.go     # root command 定義
-│   │       ├── init.go     # init 子命令
-│   │       └── sync.go     # sync 子命令（Patch 1+）
-│   └── bot/                # Telegram Bot Long Polling 進入點
-│       └── main.go
+│   └── scheduler/          # CLI 進入點（init / sync / notify）
+│       ├── main.go         # .env 載入、日誌旋轉、Asia/Taipei 時區、signal handling
+│       └── cli/            # Cobra 子命令
+│           ├── root.go     # root command 定義
+│           ├── init.go     # init 子命令
+│           ├── sync.go     # sync 子命令
+│           └── notify.go   # notify 子命令
+│   # └── bot/              # 🚧 Discord Bot WebSocket Gateway 進入點（尚未實作）
 ├── internal/
 │   ├── apiclient/          # LINE event-wall API 呼叫與分頁遍歷
-│   ├── htmlparser/         # 活動詳細頁 HTML 解析（+ LLM fallback）
-│   ├── storage/            # SQLite CRUD、Hash 管理、過期清除
-│   ├── config/             # 設定載入（Config struct + ChannelMapping）
+│   ├── htmlparser/         # 活動詳細頁 HTML 解析 + oaMessage link 解碼
+│   ├── syncer/             # Sync 編排 + 三層 Hash 差異偵測
+│   ├── storage/            # SQLite CRUD、schema、Hash 管理、過期清除
+│   ├── config/             # 設定載入（Config / ChannelMapping / ParseRules）
 │   ├── notify/             # 推播訊息組裝（多管道調度）
-│   ├── discord/            # Discord API 封裝（sendMessage + WebSocket）
+│   ├── discord/            # Discord API 封裝（Sender）
 │   ├── email/              # Email Gmail API 封裝（OAuth2）
-│   ├── bot/                # Bot 指令路由與 handler
-│   ├── taskpage/           # task.json 組裝與靜態網頁支援
+│   ├── taskpage/           # tasks.json 組裝與靜態網頁支援
 │   └── model/              # 共用資料結構定義
+│   # └── bot/              # 🚧 Bot 指令路由與 handler（尚未實作）
 ├── config/
-│   ├── config.yaml         # 應用程式設定（Telegram token、DB 路徑等）
-│   └── channel_mapping.yaml # channelName → @channel_id 對應表
+│   ├── config.yaml         # 應用程式設定（DB、API、通知、parser 等）
+│   ├── channel_mapping.yaml # channelName → @channel_id 對應表
+│   └── parse_rules.yaml    # HTML 任務類型判定規則 + 日期 pattern
 ├── data/
-│   └── line_tasks.db       # SQLite 資料庫（納入 Git 版控）
+│   ├── line_tasks.db       # SQLite 資料庫（納入 Git 版控）
+│   └── tasks.json          # 自動同步產生之給前端存取的每日任務（納入 Git 版控）
 ├── gh-pages/
-│   ├── index.html          # GitHub Pages 任務網頁殼
-│   └── tasks.json          # 自動同步產生之給前端存取的每日任務
+│   └── index.html          # GitHub Pages 任務網頁殼（fetch data/tasks.json）
 ├── .github/
+│   ├── actions/setup-go/   # Composite Action：安裝 Go + module cache
 │   └── workflows/
-│       ├── sync.yml        # Sync 排程
-│       ├── notify.yml      # Notify 排程
-│       └── deploy.yml      # GitHub Pages Deploy 排程
-├── docs/
-│   └── requirements/
-│       └── requirements.md # 本文件
+│       ├── ci.yml          # Lint / Test / Build
+│       ├── sync.yml        # Sync（workflow_dispatch）
+│       ├── notify.yml      # Notify（workflow_call / workflow_dispatch）
+│       └── deploy.yml      # GitHub Pages Deploy
+├── tests/                  # integration/（txtar）、helpers/、fixture/
+├── docs/                   # requirements / design / guides / test / changes
+├── .mise.toml              # 工具鏈與任務
 └── go.mod
 ```
 
@@ -602,33 +625,18 @@ CREATE TABLE sync_state (
 
 ### `config.yaml`
 
+> 值支援 `${ENV_VAR}` 展開（`os.ExpandEnv`，**不支援** `:-default` 語法）；`.env` 由 `godotenv` 自動載入。
+
 ```yaml
-discord:
-  enabled: true
-  bot_token: "${DISCORD_BOT_TOKEN}"
-  guild_id: "${DISCORD_GUILD_ID}"
-  notify_channel_id: "${DISCORD_NOTIFY_CHANNEL_ID}"
-  admin_channel_id: "${DISCORD_ADMIN_CHANNEL_ID}"
-
-email:
-  enabled: true
-  credentials_path: "${GMAIL_CREDENTIAL_PATH:-credentials.json}"
-  token_path: "${GMAIL_TOKEN_PATH:-token.json}"
-  sender: "windyskykarl912@gmail.com"
-  recipients:
-    - "windyskykarl912@gmail.com"
-
 database:
   path: "data/line_tasks.db"
-
-taskpage:
-  output_path: "data/tasks.json"
-  github_pages_url: "https://dccoding1118.github.io/more-line-points/"
 
 channel_mapping:
   path: "config/channel_mapping.yaml"
 
-
+taskpage:
+  output_path: "data/tasks.json"
+  github_pages_url: "https://dccoding1118.github.io/more-line-points/"
 
 api:
   base_url: "https://ec-bot-web.line-apps.com/event-wall/home"
@@ -637,19 +645,64 @@ api:
     origin: "https://event.line.me"
     referer: "https://event.line.me/bulletin/tw"
     user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ..."
+
+parser:
+  rules_path: config/parse_rules.yaml
+
+discord:
+  enabled: false                      # 預設關閉
+  bot_token: "${DISCORD_BOT_TOKEN}"
+  guild_id: "${DISCORD_GUILD_ID}"
+  notify_channel_id: "${DISCORD_NOTIFY_CHANNEL_ID}"
+  admin_channel_id: "${DISCORD_ADMIN_CHANNEL_ID}"
+  api_endpoint: ""                    # 留空使用 Discord 官方 API
+
+email:
+  enabled: true
+  credentials_path: "${GMAIL_CREDENTIAL_PATH}"
+  token_path: "${GMAIL_TOKEN_PATH}"
+  sender: "${EMAIL_SENDER}"
+  recipients_env: "${EMAIL_RECIPIENTS}" # 逗號分隔字串，非空時覆寫 recipients
+  recipients: []
 ```
+
+必填欄位於載入時驗證：`database.path`、`taskpage.output_path`、`taskpage.github_pages_url`、`api.base_url`、`api.region`、`api.headers.*`、`parser.rules_path`。
 
 ### `channel_mapping.yaml`
 
 ```yaml
 # channelName（來自 API）→ LINE channel_id（@xxx）
 mappings:
-  "LINE 購物": "@lineshopping"
+  "LINE 購物": "@lineshopping_tw"
   "LINE Pay": "@linepay"
   "LINE TODAY": "@linetoday"
+  # ...（其餘頻道見實際檔案）
 
 # 遇到未對應的 channelName 時的行為
 on_missing: warn   # warn | skip | error
+```
+
+### `parse_rules.yaml`
+
+定義詳細頁 HTML 的任務類型判定規則與日期抽取 pattern。每條規則以 `text_patterns`
+與 / 或 `url_pattern` 比對，旗標 `has_daily_tasks` / `has_keyword` / `url_only` /
+`use_click_url` 控制抽取行為。新增類型只需編輯此檔。
+
+```yaml
+rules:
+  - type: keyword
+    text_patterns: ["輸入關鍵字", "指定關鍵字", "完整關鍵字"]
+    url_pattern: "line.me/R/oaMessage/"
+    has_daily_tasks: true
+    has_keyword: true
+  - type: share
+    text_patterns: ["分享連結"]
+    url_pattern: "event.line.me/s/"
+  # ... passport / shop-collect / lucky-draw / app-checkin / poll
+
+date_patterns:
+  - '(\d{1,2})[月/](\d{1,2})[日]?'   # 3月1日、3/1
+  - '^(\d{2})(\d{2})'                # 0301（關鍵字開頭 MMDD）
 ```
 
 ---

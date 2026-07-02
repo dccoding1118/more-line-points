@@ -17,6 +17,17 @@
 
 > **操作提示**：可使用 `cat credentials.json | pbcopy`（macOS）或 `cat credentials.json | xclip`（Linux）快速複製檔案內容。
 
+### 1.1 設定 GitHub Variables
+
+寄件者與收件人以 **Repository Variables**（非 Secret）注入。前往 **Settings → Secrets and variables → Actions → Variables → New repository variable**：
+
+| Variable 名稱      | 值                                   |
+| ------------------ | ------------------------------------ |
+| `EMAIL_SENDER`     | 寄件者信箱                           |
+| `EMAIL_RECIPIENTS` | 收件人清單（逗號分隔，如 `a@x.com,b@y.com`） |
+
+> `notify.yml` 執行時會把上述 Secrets 與 Variables 寫入 `.env`，並將 `GMAIL_CREDENTIALS_JSON` / `GMAIL_TOKEN_JSON` 還原為 `credentials.json` / `token.json`。
+
 ## 2. 確認 Workflow 權限
 
 前往 **GitHub Repo → Settings → Actions → General → Workflow permissions**：
@@ -39,7 +50,7 @@
 
 ## 4. 驗證 Secrets 設定正確性
 
-在 **GitHub Repo → Settings → Secrets and variables → Actions** 頁面確認 6 個 Secrets 都已新增，Secret 名稱無拼字錯誤。
+在 **GitHub Repo → Settings → Secrets and variables → Actions** 頁面確認 6 個 Secrets 與 2 個 Variables（`EMAIL_SENDER`、`EMAIL_RECIPIENTS`）都已新增，名稱無拼字錯誤。
 
 > Secret 值新增後無法再查看內容，若不確定是否正確可選擇 **Update** 重新貼入。
 
@@ -152,7 +163,9 @@ rm token.json
 
 ## 7. GCP Cloud Scheduler 設定
 
-GitHub Actions 的 Cron 排程不保證準時（高峰時段延遲可達 30–60 分鐘），使用 **GCP Cloud Scheduler** 外部觸發 `workflow_dispatch` 以確保 Notify 準時推播。
+Workflow 本身**未設定任何 cron 排程**，由 **GCP Cloud Scheduler** 作為唯一排程來源，外部觸發 `sync.yml` 的 `workflow_dispatch`（GitHub 原生 cron 高峰時段延遲可達 30–60 分鐘）。
+
+> **重要**：`sync.yml` 成功後會透過 `workflow_call` 自動連動 `notify.yml`，因此**只需排程 `sync.yml`**，即可完成「同步 → 產出 tasks.json → commit-back → 推播」整條流程。若需單獨補推播，可另建一個觸發 `notify.yml` 的 Job（支援 `date` 輸入）。
 
 ### 7.1 建立 Fine-grained PAT
 
@@ -161,7 +174,7 @@ GitHub Actions 的 Cron 排程不保證準時（高峰時段延遲可達 30–60
 
 | 設定項                | 值                                     |
 | --------------------- | -------------------------------------- |
-| **Token name**        | `gcp-scheduler-notify`                 |
+| **Token name**        | `gcp-scheduler-sync`                    |
 | **Expiration**        | 90 天                                  |
 | **Repository access** | `Only select repositories` → 僅本 repo |
 | **Permissions**       | `Actions: Read and write`              |
@@ -175,16 +188,16 @@ GitHub Actions 的 Cron 排程不保證準時（高峰時段延遲可達 30–60
 1. 前往 [GCP Console → Cloud Scheduler](https://console.cloud.google.com/cloudscheduler)
 2. 點擊 **CREATE JOB**，設定以下參數：
 
-| 設定項          | 值                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------- |
-| **Name**        | `trigger-notify-workflow`                                                             |
-| **Region**      | `asia-east1`（或就近區域）                                                            |
-| **Frequency**   | `50 23 * * *`（台灣時間 23:50，GCP 支援時區設定）                                     |
-| **Timezone**    | `Asia/Taipei`                                                                         |
-| **Target type** | `HTTP`                                                                                |
-| **URL**         | `https://api.github.com/repos/{OWNER}/{REPO}/actions/workflows/notify.yml/dispatches` |
-| **Method**      | `POST`                                                                                |
-| **Body**        | `{"ref":"main"}`                                                                      |
+| 設定項          | 值                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------- |
+| **Name**        | `trigger-sync-workflow`                                                             |
+| **Region**      | `asia-east1`（或就近區域）                                                          |
+| **Frequency**   | `5 0 * * *`（台灣時間 00:05；GCP 支援時區設定）                                     |
+| **Timezone**    | `Asia/Taipei`                                                                       |
+| **Target type** | `HTTP`                                                                              |
+| **URL**         | `https://api.github.com/repos/{OWNER}/{REPO}/actions/workflows/sync.yml/dispatches` |
+| **Method**      | `POST`                                                                             |
+| **Body**        | `{"ref":"main"}`                                                                   |
 
 3. 設定 HTTP Headers：
 
@@ -200,5 +213,5 @@ Content-Type: application/json
 ### 7.3 驗證
 
 1. 在 Cloud Scheduler 列表頁面，點擊 **Force Run** 手動測試
-2. 檢查 GitHub Actions 頁面，確認 `notify.yml` 被 `workflow_dispatch` 事件觸發
-3. 確認 Notify 執行成功（Discord 與 Email 收到推播）
+2. 檢查 GitHub Actions 頁面，確認 `sync.yml` 被 `workflow_dispatch` 事件觸發，且成功後自動連動 `notify.yml`
+3. 確認同步完成（`data/` 出現 auto-sync commit）且 Notify 執行成功（Discord 與 Email 收到推播）
